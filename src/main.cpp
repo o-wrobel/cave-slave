@@ -1,6 +1,8 @@
 #include <raylib.h>
 #include <iostream>
 #include <array>
+#include <cmath>
+#include <algorithm>
 
 // #include "game.h"
 
@@ -16,18 +18,16 @@
 
 namespace Game
 {
-
     // CONSTANTS
     constexpr unsigned int WINDOW_WIDTH = 800;
     constexpr unsigned int WINDOW_HEIGHT = 600;
     constexpr unsigned int TARGET_FRAMERATE = 60;
+
     constexpr unsigned int TILE_RESOLUTION = 8;
     constexpr unsigned int TILE_COUNT = 4;
 
-    Image tile_spritesheet;
-    std::array<Texture2D, TILE_COUNT> tile_textures;
-
-    float delta_time;
+    const unsigned int grid_size_x = 32;
+    const unsigned int grid_size_y = 32;
 
     // STRUCTS
     struct Tile
@@ -102,6 +102,17 @@ namespace Game
         }
     };
 
+    // NON-CONSTANTS
+    Image tile_spritesheet;
+    std::array<Texture2D, TILE_COUNT> tile_textures;
+
+    Grid<grid_size_x, grid_size_y> grid;
+
+    Camera2D camera = {0};
+
+    float delta_time;
+
+    // FUNCTIONS
     template <size_t tile_count>
     void InitTileTextures(
         std::array<Texture2D, tile_count> &tile_textures = tile_textures,
@@ -112,27 +123,27 @@ namespace Game
         Rectangle source_rect = {0.0f, 0.0f, (float)tile_resolution, (float)tile_resolution};
         for (unsigned int i = 0; i < tile_count; i++)
         {
-            switch (i)
-            {
-            case 1:
-                source_rect.x = tile_resolution;
-                break;
+            source_rect.x = i * tile_resolution % (tile_spritesheet.width);
+            source_rect.y = floor(i / (tile_spritesheet.width / tile_resolution)) * tile_resolution;
 
-            case 2:
-                source_rect.x = 2 * tile_resolution;
-                break;
-
-            case 3:
-                source_rect.x = 3 * tile_resolution;
-                break;
-
-            default:
-                source_rect.x = 0.0f;
-            }
             Image sub_image = ImageFromImage(tile_spritesheet, source_rect);
             Game::tile_textures.at(i) = LoadTextureFromImage(sub_image);
             UnloadImage(sub_image);
         }
+    }
+
+    template <size_t grid_size_x, size_t grid_size_y>
+    void Init()
+    {
+        InitWindow(Game::WINDOW_HEIGHT, Game::WINDOW_HEIGHT, "raylib basic window");
+        SetTargetFPS(Game::TARGET_FRAMERATE);
+
+        Game::tile_spritesheet = LoadImage("assets/tiles.png");
+        Game::InitTileTextures(Game::tile_textures);
+
+        camera.offset = {0.0f, 0.0f};
+        camera.rotation = 0.0f;
+        camera.zoom = 2.0f;
     }
 
 };
@@ -141,13 +152,7 @@ int main()
 {
     using Game::delta_time;
 
-    InitWindow(Game::WINDOW_HEIGHT, Game::WINDOW_HEIGHT, "raylib basic window");
-    SetTargetFPS(Game::TARGET_FRAMERATE);
-
-    Game::tile_spritesheet = LoadImage("assets/tiles.png");
-    Game::InitTileTextures(Game::tile_textures);
-
-    Game::Grid<32, 32> grid;
+    Game::Init<32, 32>();
 
     Texture2D player_texture;
     SAFE_CALL(player_texture = LoadTexture("assets/player.png"));
@@ -161,16 +166,38 @@ int main()
         player.position.x += player.speed * delta_time * (IsKeyDown(KEY_RIGHT) - IsKeyDown(KEY_LEFT));
         player.position.y -= player.speed * delta_time * (IsKeyDown(KEY_UP) - IsKeyDown(KEY_DOWN));
 
+        float wheel = GetMouseWheelMove();
+        using Game::camera;
+        if (wheel != 0)
+        {
+            // Get the world point that is under the mouse
+            Vector2 mouseWorldPos = GetScreenToWorld2D(GetMousePosition(), camera);
+
+            // Set the offset to where the mouse is
+            camera.offset = GetMousePosition();
+
+            // Set the target to match, so that the camera maps the world space point
+            // under the cursor to the screen space point under the cursor at any zoom
+            camera.target = mouseWorldPos;
+
+            // Zoom increment
+            // Uses log scaling to provide consistent zoom speed
+            float scale = 0.2f * wheel;
+            camera.zoom = std::clamp(std::expf(std::logf(camera.zoom) + scale), 1 / 8.f, 64.0f);
+        }
+
         // DRAW
         BeginDrawing();
+        BeginMode2D(Game::camera);
         ClearBackground(BLACK);
 
-        grid.DrawGrid(Game::tile_textures);
+        Game::grid.DrawGrid(Game::tile_textures);
 
         DrawTextureEx(player.texture, player.position, 0.0f, 8.0f, WHITE);
 
-        DrawText("It works!", 20, 20, 20, WHITE);
+        DrawText("It works!", 32, 32, 32, WHITE);
 
+        EndMode2D();
         EndDrawing();
     }
     CloseWindow();
