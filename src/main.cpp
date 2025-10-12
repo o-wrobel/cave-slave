@@ -21,8 +21,15 @@ namespace Game
     constexpr unsigned int WINDOW_WIDTH = 800;
     constexpr unsigned int WINDOW_HEIGHT = 600;
     constexpr unsigned int TARGET_FRAMERATE = 60;
-    const unsigned int TILE_SIZE = 32;
+    constexpr unsigned int TILE_RESOLUTION = 8;
+    constexpr unsigned int TILE_COUNT = 3;
 
+    Image tile_spritesheet;
+    std::array<Texture2D, TILE_COUNT> tile_textures;
+
+    float delta_time;
+
+    // STRUCTS
     struct Tile
     {
         unsigned int type;
@@ -37,9 +44,9 @@ namespace Game
 
         Grid() : grid()
         {
-            for (auto& row : grid)
+            for (auto &row : grid)
             {
-                for (auto& tile : row)
+                for (auto &tile : row)
                 {
                     tile.type = 0;
                 }
@@ -51,9 +58,9 @@ namespace Game
         void BuildGrid()
         {
             int i = 1;
-            for (auto& row : grid)
+            for (auto &row : grid)
             {
-                for (auto& tile : row)
+                for (auto &tile : row)
                 {
                     tile.type = i % 2;
                     i++;
@@ -61,26 +68,16 @@ namespace Game
             }
         }
 
-        void DrawGrid()
+        void DrawGrid(std::array<Texture2D, TILE_COUNT> &tile_textures)
         {
             for (unsigned int y = 0; y < rows; y++)
             {
                 for (unsigned int x = 0; x < cols; x++)
                 {
                     const Tile tile = grid.at(y).at(x);
-                    switch (tile.type)
-                    {
-                    case 1:
-                        DrawRectangle(x*TILE_SIZE, y*TILE_SIZE, TILE_SIZE, TILE_SIZE, RED);
-                        break;
+                    const Texture2D tile_texture = tile_textures.at(tile.type);
 
-                    case 2:
-                        DrawRectangle(x*TILE_SIZE, y*TILE_SIZE, TILE_SIZE, TILE_SIZE, BLUE);
-                        break;
-
-                    default:
-                        break;
-                    }
+                    DrawTexture(tile_texture, x * TILE_RESOLUTION, y * TILE_RESOLUTION, WHITE);
                 }
             }
         }
@@ -98,7 +95,28 @@ namespace Game
         }
     };
 
-    float delta_time;
+    template <size_t tile_count>
+    void InitTileTextures(
+        std::array<Texture2D, tile_count> &tile_textures = tile_textures,
+        const Image &tile_spritesheet = tile_spritesheet,
+        unsigned int tile_resolution = TILE_RESOLUTION)
+    {
+        for (unsigned int i = 0; i < tile_count; i++)
+        {
+            Rectangle source_rect = {0.0f, 0.0f, (float)tile_resolution, (float)tile_resolution};
+            switch (i)
+            {
+            case 1:
+                source_rect.x = 1 * tile_count;
+
+            case 2:
+                source_rect.x = 2 * tile_count;
+            }
+            Image sub_image = ImageFromImage(tile_spritesheet, source_rect);
+            Game::tile_textures.at(i) = LoadTextureFromImage(sub_image);
+            UnloadImage(sub_image);
+        }
+    }
 
 };
 
@@ -109,10 +127,12 @@ int main()
     InitWindow(Game::WINDOW_HEIGHT, Game::WINDOW_HEIGHT, "raylib basic window");
     SetTargetFPS(Game::TARGET_FRAMERATE);
 
-    Texture2D player_texture;
+    Game::tile_spritesheet = LoadImage("assets/tiles.png");
+    Game::InitTileTextures(Game::tile_textures);
 
     Game::Grid<10, 10> grid;
 
+    Texture2D player_texture;
     SAFE_CALL(player_texture = LoadTexture("assets/player.png"));
     Game::Player player(player_texture);
 
@@ -129,7 +149,9 @@ int main()
         BeginDrawing();
         ClearBackground(BLACK);
 
-        grid.DrawGrid();
+        grid.DrawGrid(Game::tile_textures);
+
+        DrawTexture(Game::tile_textures.at(1), 0, 0, WHITE);
 
         DrawTextureEx(player.texture, player.position, 0.0f, 8.0f, WHITE);
 
