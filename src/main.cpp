@@ -22,7 +22,7 @@ namespace Game
     constexpr unsigned int WINDOW_HEIGHT = 600;
     constexpr unsigned int TARGET_FRAMERATE = 60;
     constexpr unsigned int TILE_RESOLUTION = 8;
-    constexpr unsigned int TILE_COUNT = 3;
+    constexpr unsigned int TILE_COUNT = 4;
 
     Image tile_spritesheet;
     std::array<Texture2D, TILE_COUNT> tile_textures;
@@ -57,14 +57,21 @@ namespace Game
 
         void BuildGrid()
         {
-            int i = 1;
-            for (auto &row : grid)
+            for (int y = 0; y < rows; y++)
             {
-                for (auto &tile : row)
-                {
-                    tile.type = i % 2;
-                    i++;
-                }
+                grid.at(y).at(0).type = 3;
+            }
+            for (int x = 0; x < cols; x++)
+            {
+                grid.at(0).at(x).type = 3;
+            }
+            for (int y = 0; y < rows; y++)
+            {
+                grid.at(y).at(cols - 1).type = 1;
+            }
+            for (int x = 0; x < cols; x++)
+            {
+                grid.at(rows - 1).at(x).type = 2;
             }
         }
 
@@ -101,16 +108,26 @@ namespace Game
         const Image &tile_spritesheet = tile_spritesheet,
         unsigned int tile_resolution = TILE_RESOLUTION)
     {
+
+        Rectangle source_rect = {0.0f, 0.0f, (float)tile_resolution, (float)tile_resolution};
         for (unsigned int i = 0; i < tile_count; i++)
         {
-            Rectangle source_rect = {0.0f, 0.0f, (float)tile_resolution, (float)tile_resolution};
             switch (i)
             {
             case 1:
-                source_rect.x = 1 * tile_count;
+                source_rect.x = tile_resolution;
+                break;
 
             case 2:
-                source_rect.x = 2 * tile_count;
+                source_rect.x = 2 * tile_resolution;
+                break;
+
+            case 3:
+                source_rect.x = 3 * tile_resolution;
+                break;
+
+            default:
+                source_rect.x = 0.0f;
             }
             Image sub_image = ImageFromImage(tile_spritesheet, source_rect);
             Game::tile_textures.at(i) = LoadTextureFromImage(sub_image);
@@ -130,7 +147,7 @@ int main()
     Game::tile_spritesheet = LoadImage("assets/tiles.png");
     Game::InitTileTextures(Game::tile_textures);
 
-    Game::Grid<10, 10> grid;
+    Game::Grid<32, 32> grid;
 
     Texture2D player_texture;
     SAFE_CALL(player_texture = LoadTexture("assets/player.png"));
@@ -139,7 +156,6 @@ int main()
     while (!WindowShouldClose())
     {
         // UPDATE
-
         delta_time = GetFrameTime();
 
         player.position.x += player.speed * delta_time * (IsKeyDown(KEY_RIGHT) - IsKeyDown(KEY_LEFT));
@@ -150,8 +166,6 @@ int main()
         ClearBackground(BLACK);
 
         grid.DrawGrid(Game::tile_textures);
-
-        DrawTexture(Game::tile_textures.at(1), 0, 0, WHITE);
 
         DrawTextureEx(player.texture, player.position, 0.0f, 8.0f, WHITE);
 
