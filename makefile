@@ -2,8 +2,8 @@ CC = g++
 BUILD_DIR = build
 
 BINARY = $(BUILD_DIR)\bin
-CFILES = src\main.cpp src\game.cpp
-OBJECTS = main.o game.o
+CFILES = src\main.cpp #src\game.cpp
+OBJECTS = main.o #game.o
 
 LFLAGS = -lraylib -lopengl32 -lgdi32 -lwinmm
 INCLUDE = -I"C:\Libraries\raylib-5.5_win64_mingw-w64\include"
