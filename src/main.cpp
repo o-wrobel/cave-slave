@@ -29,6 +29,8 @@ namespace Game
     const unsigned int grid_size_x = 32;
     const unsigned int grid_size_y = 32;
 
+    constexpr bool ZOOM_INTO_MOUSE = false;
+
     // STRUCTS
     struct Tile
     {
@@ -95,10 +97,16 @@ namespace Game
     public:
         Texture2D texture;
         Vector2 position;
+        Vector2 size;
         float speed;
 
-        Player(Texture2D texture) : texture(texture), position({0.0f, 0.0f}), speed(400.0f)
+        Player(Texture2D texture) : texture(texture), position({0.0f, 0.0f}), size({8.0f, 8.0f}), speed(400.0f)
         {
+        }
+
+        Vector2 GetCenter()
+        {
+            return {position.x + size.x / 2, position.y + size.y / 2};
         }
     };
 
@@ -135,7 +143,7 @@ namespace Game
     template <size_t grid_size_x, size_t grid_size_y>
     void Init()
     {
-        InitWindow(Game::WINDOW_HEIGHT, Game::WINDOW_HEIGHT, "raylib basic window");
+        InitWindow(Game::WINDOW_WIDTH, Game::WINDOW_HEIGHT, "raylib basic window");
         SetTargetFPS(Game::TARGET_FRAMERATE);
 
         Game::tile_spritesheet = LoadImage("assets/tiles.png");
@@ -166,34 +174,41 @@ int main()
         player.position.x += player.speed * delta_time * (IsKeyDown(KEY_RIGHT) - IsKeyDown(KEY_LEFT));
         player.position.y -= player.speed * delta_time * (IsKeyDown(KEY_UP) - IsKeyDown(KEY_DOWN));
 
-        float wheel = GetMouseWheelMove();
         using Game::camera;
+        float wheel = GetMouseWheelMove();
         if (wheel != 0)
         {
             // Get the world point that is under the mouse
             Vector2 mouseWorldPos = GetScreenToWorld2D(GetMousePosition(), camera);
 
-            // Set the offset to where the mouse is
-            camera.offset = GetMousePosition();
+            if (Game::ZOOM_INTO_MOUSE)
+            {
+                // Set the offset to where the mouse is
+                camera.offset = GetMousePosition();
 
-            // Set the target to match, so that the camera maps the world space point
-            // under the cursor to the screen space point under the cursor at any zoom
-            camera.target = mouseWorldPos;
+                // Set the target to match, so that the camera maps the world space point
+                // under the cursor to the screen space point under the cursor at any zoom
+                camera.target = mouseWorldPos;
+
+            }
 
             // Zoom increment
             // Uses log scaling to provide consistent zoom speed
             float scale = 0.2f * wheel;
             camera.zoom = std::clamp(std::expf(std::logf(camera.zoom) + scale), 1 / 8.f, 64.0f);
         }
+        camera.target = player.GetCenter();
+        camera.offset = {Game::WINDOW_WIDTH / 2, 1.f * Game::WINDOW_HEIGHT / 2};
+
 
         // DRAW
         BeginDrawing();
-        BeginMode2D(Game::camera);
         ClearBackground(BLACK);
+        BeginMode2D(Game::camera);
 
         Game::grid.DrawGrid(Game::tile_textures);
 
-        DrawTextureEx(player.texture, player.position, 0.0f, 8.0f, WHITE);
+        DrawTextureEx(player.texture, player.position, 0.0f, 1.0f, WHITE);
 
         DrawText("It works!", 32, 32, 32, WHITE);
 
