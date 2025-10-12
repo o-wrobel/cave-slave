@@ -4,17 +4,24 @@
 
 // #include "game.h"
 
-#define SAFE_CALL(expr) \
-    try { expr; } \
-    catch (const std::exception& e) { \
+#define SAFE_CALL(expr)                             \
+    try                                             \
+    {                                               \
+        expr;                                       \
+    }                                               \
+    catch (const std::exception &e)                 \
+    {                                               \
         std::cerr << "Error: " << e.what() << '\n'; \
     }
 
 namespace Game
 {
+
+    // CONSTANTS
     constexpr unsigned int WINDOW_WIDTH = 800;
     constexpr unsigned int WINDOW_HEIGHT = 600;
     constexpr unsigned int TARGET_FRAMERATE = 60;
+    const unsigned int TILE_SIZE = 32;
 
     struct Tile
     {
@@ -27,6 +34,56 @@ namespace Game
     private:
     public:
         std::array<std::array<Tile, cols>, rows> grid;
+
+        Grid() : grid()
+        {
+            for (auto& row : grid)
+            {
+                for (auto& tile : row)
+                {
+                    tile.type = 0;
+                }
+            }
+
+            BuildGrid();
+        }
+
+        void BuildGrid()
+        {
+            int i = 1;
+            for (auto& row : grid)
+            {
+                for (auto& tile : row)
+                {
+                    tile.type = i % 2;
+                    i++;
+                }
+            }
+        }
+
+        void DrawGrid()
+        {
+            for (unsigned int y = 0; y < rows; y++)
+            {
+                for (unsigned int x = 0; x < cols; x++)
+                {
+                    const Tile tile = grid.at(y).at(x);
+                    switch (tile.type)
+                    {
+                    case 1:
+                        DrawRectangle(x*TILE_SIZE, y*TILE_SIZE, TILE_SIZE, TILE_SIZE, RED);
+                        break;
+
+                    case 2:
+                        DrawRectangle(x*TILE_SIZE, y*TILE_SIZE, TILE_SIZE, TILE_SIZE, BLUE);
+                        break;
+
+                    default:
+                        break;
+                    }
+                }
+            }
+        }
     };
 
     class Player
@@ -36,23 +93,25 @@ namespace Game
         Vector2 position;
         float speed;
 
-        Player(Texture2D texture) : texture(texture), position({0.0f, 0.0f}), speed(200.0f)
+        Player(Texture2D texture) : texture(texture), position({0.0f, 0.0f}), speed(400.0f)
         {
         }
     };
+
+    float delta_time;
+
 };
-
-
 
 int main()
 {
+    using Game::delta_time;
 
     InitWindow(Game::WINDOW_HEIGHT, Game::WINDOW_HEIGHT, "raylib basic window");
     SetTargetFPS(Game::TARGET_FRAMERATE);
 
-    float delta_time;
-
     Texture2D player_texture;
+
+    Game::Grid<10, 10> grid;
 
     SAFE_CALL(player_texture = LoadTexture("assets/player.png"));
     Game::Player player(player_texture);
@@ -69,6 +128,8 @@ int main()
         // DRAW
         BeginDrawing();
         ClearBackground(BLACK);
+
+        grid.DrawGrid();
 
         DrawTextureEx(player.texture, player.position, 0.0f, 8.0f, WHITE);
 
