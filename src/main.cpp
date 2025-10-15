@@ -16,6 +16,22 @@
         std::cerr << "Error: " << e.what() << '\n'; \
     }
 
+namespace Input
+{
+    bool right_pressed;
+    bool left_pressed;
+    bool up_pressed;
+    bool down_pressed;
+
+    void Update()
+    {
+        right_pressed = IsKeyDown(KEY_A);
+        left_pressed = IsKeyDown(KEY_D);
+        up_pressed = IsKeyDown(KEY_W);
+        down_pressed = IsKeyDown(KEY_S);
+    }
+}
+
 namespace Game
 {
     // CONSTANTS
