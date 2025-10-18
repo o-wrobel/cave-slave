@@ -48,72 +48,63 @@ namespace Game{
             };
         }
     };
+
     // STRUCTS
     struct Tile {
         unsigned int type;
     };
 
     template <size_t rows, size_t cols>
-    class Grid{
-        private:
-        public:
-            std::array<std::array<Tile, cols>, rows> grid;
+    struct Grid{
+        std::array<std::array<Tile, cols>, rows> tiles;
 
-            Grid() : grid()
+        void Place(unsigned int x, unsigned int y, unsigned int type){
+            tiles.at(y).at(x).type = type;
+        }
+
+        Tile GetTile(unsigned int x, unsigned int y){
+            return tiles.at(y).at(x);
+        }
+
+        static Grid NewBox(){
+            Grid grid;
+            for (int y = 0; y < rows; y++)
             {
-                for (auto &row : grid)
-                {
-                    for (auto &tile : row)
-                    {
-                        tile.type = 0;
-                    }
-                }
-
-                BuildGrid();
+                grid.Place(0, y, 6);
+            }
+            for (int x = 0; x < cols; x++)
+            {
+                grid.Place(x, 0, 6);
+            }
+            for (int y = 0; y < rows; y++)
+            {
+                grid.Place(cols - 1, y, 6);
+            }
+            for (int x = 0; x < cols; x++)
+            {
+                grid.Place(x, rows - 1, 6);
             }
 
-            void PlaceTile(unsigned int x, unsigned int y, unsigned int type)
+            return grid;
+        }
+
+    };
+
+    template <size_t rows, size_t cols>
+    void RenderGrid(Grid<rows, cols> grid, std::array<Texture2D, Config::TILE_COUNT> &tile_textures)
+    {
+        for (unsigned int y = 0; y < rows; y++)
+        {
+            for (unsigned int x = 0; x < cols; x++)
             {
-                grid.at(y).at(x).type = type;
+                const Tile tile = grid.GetTile(x, y);
+                const Texture2D tile_texture = tile_textures.at(tile.type);
+
+                DrawTexture(tile_texture, x * Config::TILE_RESOLUTION, y * Config::TILE_RESOLUTION, WHITE);
             }
+        }
+    }
 
-            void BuildGrid()
-            {
-                for (int y = 0; y < rows; y++)
-                {
-                    PlaceTile(0, y, 6);
-                }
-                for (int x = 0; x < cols; x++)
-                {
-                    PlaceTile(x, 0, 6);
-                }
-                for (int y = 0; y < rows; y++)
-                {
-                    PlaceTile(cols - 1, y, 6);
-                }
-                for (int x = 0; x < cols; x++)
-                {
-                    PlaceTile(x, rows - 1, 6);
-                }
-
-                PlaceTile(9, 9, 7);
-
-            }
-
-            void DrawGrid(std::array<Texture2D, Config::TILE_COUNT> &tile_textures)
-            {
-                for (unsigned int y = 0; y < rows; y++)
-                {
-                    for (unsigned int x = 0; x < cols; x++)
-                    {
-                        const Tile tile = grid.at(y).at(x);
-                        const Texture2D tile_texture = tile_textures.at(tile.type);
-
-                        DrawTexture(tile_texture, x * Config::TILE_RESOLUTION, y * Config::TILE_RESOLUTION, WHITE);
-                    }
-                }
-            }
-        };
     namespace Player {
         struct State {
             Vector2 position = {0.0f, 0.0f};
@@ -128,32 +119,31 @@ namespace Game{
             Vector2 GetCenter() const {
                 return {position.x + size.x / 2, position.y + size.y / 2};
             }
+            static State New(
+                        Vector2 position,
+                        Vector2 size = {8.0f, 8.0f},
+                        float move_speed = 400.0f){
+                        return {position, size, move_speed};
+                    }
+
+            static State Update(
+                State& current_state,
+                const Input& input,
+                float deltaTime)
+            {
+                // Calculate movement based on input
+                float horizontal = (input.right ? 1.0f : 0.0f) - (input.left ? 1.0f : 0.0f);
+                float vertical = (input.up ? 1.0f : 0.0f) - (input.down ? 1.0f : 0.0f);
+
+                Vector2 offset = {
+                    horizontal * current_state.move_speed * deltaTime,
+                    -vertical * current_state.move_speed * deltaTime
+                };
+
+                return current_state.MoveBy(offset);
+
+            }
         };
-
-        State New(
-            Vector2 position,
-            Vector2 size = {8.0f, 8.0f},
-            float move_speed = 400.0f){
-            return {position, size, move_speed};
-        }
-
-        State Update(
-            State& current_state,
-            const Input& input,
-            float deltaTime)
-        {
-            // Calculate movement based on input
-            float horizontal = (input.right ? 1.0f : 0.0f) - (input.left ? 1.0f : 0.0f);
-            float vertical = (input.up ? 1.0f : 0.0f) - (input.down ? 1.0f : 0.0f);
-
-            Vector2 offset = {
-                horizontal * current_state.move_speed * deltaTime,
-                -vertical * current_state.move_speed * deltaTime
-            };
-
-            return current_state.MoveBy(offset);
-
-        }
 
         void Render(const State& state, const Texture2D& texture){
             DrawTextureV(texture, state.position, WHITE);
@@ -164,9 +154,9 @@ namespace Game{
     Image tile_spritesheet;
     std::array<Texture2D, Config::TILE_COUNT> tile_textures;
 
-    Grid<Config::GRID_SIZE_X, Config::GRID_SIZE_Y> grid;
+    auto grid = Grid<Config::GRID_SIZE_X, Config::GRID_SIZE_Y>::NewBox();
 
-    Camera2D camera = {0};
+    Camera2D camera;
 
     float delta_time;
 
@@ -185,18 +175,18 @@ namespace Game{
             source_rect.y = floor(i / (tile_spritesheet.width / tile_resolution)) * tile_resolution;
 
             Image sub_image = ImageFromImage(tile_spritesheet, source_rect);
-            Game::tile_textures.at(i) = LoadTextureFromImage(sub_image);
+            tile_textures.at(i) = LoadTextureFromImage(sub_image);
             UnloadImage(sub_image);
         }
     }
 
     template <size_t grid_size_x, size_t grid_size_y>
     void Init(){
-        InitWindow(Game::Config::WINDOW_WIDTH, Game::Config::WINDOW_HEIGHT, "raylib basic window");
-        SetTargetFPS(Game::Config::TARGET_FRAMERATE);
+        InitWindow(Config::WINDOW_WIDTH, Config::WINDOW_HEIGHT, "raylib basic window");
+        SetTargetFPS(Config::TARGET_FRAMERATE);
 
-        Game::tile_spritesheet = LoadImage("assets/tiles.png");
-        Game::InitTileTextures(Game::tile_textures, Game::tile_spritesheet, Game::Config::TILE_RESOLUTION);
+        tile_spritesheet = LoadImage("assets/tiles.png");
+        InitTileTextures(tile_textures, tile_spritesheet, Config::TILE_RESOLUTION);
 
         camera.offset = {0.0f, 0.0f};
         camera.rotation = 0.0f;
@@ -211,7 +201,7 @@ int main(){
 
     Game::Init<32, 32>();
 
-    Game::Player::State player = Game::Player::New({0.0f, 0.0f});
+    Game::Player::State player = Game::Player::State::New({0.0f, 0.0f});
     Texture2D player_texture;
     SAFE_CALL(player_texture = LoadTexture("assets/player.png"));
 
@@ -221,7 +211,7 @@ int main(){
         delta_time = GetFrameTime();
         const Game::Input input = Game::Input::Capture();
 
-        player = Game::Player::Update(player, input, delta_time);
+        player = Game::Player::State::Update(player, input, delta_time);
 
         float wheel = GetMouseWheelMove();
         if (wheel != 0){
@@ -252,7 +242,7 @@ int main(){
         ClearBackground(BLACK);
         BeginMode2D(Game::camera);
 
-        Game::grid.DrawGrid(Game::tile_textures);
+        Game::RenderGrid(Game::grid, Game::tile_textures);
 
         Game::Player::Render(player , player_texture);
         DrawText("It works!", 32, 32, 32, WHITE);
