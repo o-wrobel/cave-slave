@@ -17,9 +17,7 @@
     }
 
 
-
-namespace Game
-{
+namespace Game{
     // CONSTANTS
     constexpr unsigned int WINDOW_WIDTH = 800;
     constexpr unsigned int WINDOW_HEIGHT = 600;
@@ -47,90 +45,87 @@ namespace Game
         }
     };
     // STRUCTS
-    struct Tile
-    {
+    struct Tile {
         unsigned int type;
     };
 
     template <size_t rows, size_t cols>
-    class Grid
-    {
-    private:
-    public:
-        std::array<std::array<Tile, cols>, rows> grid;
+    class Grid{
+        private:
+        public:
+            std::array<std::array<Tile, cols>, rows> grid;
 
-        Grid() : grid()
-        {
-            for (auto &row : grid)
+            Grid() : grid()
             {
-                for (auto &tile : row)
+                for (auto &row : grid)
                 {
-                    tile.type = 0;
+                    for (auto &tile : row)
+                    {
+                        tile.type = 0;
+                    }
+                }
+
+                BuildGrid();
+            }
+
+            void PlaceTile(unsigned int x, unsigned int y, unsigned int type)
+            {
+                grid.at(y).at(x).type = type;
+            }
+
+            void BuildGrid()
+            {
+                for (int y = 0; y < rows; y++)
+                {
+                    PlaceTile(0, y, 6);
+                }
+                for (int x = 0; x < cols; x++)
+                {
+                    PlaceTile(x, 0, 6);
+                }
+                for (int y = 0; y < rows; y++)
+                {
+                    PlaceTile(cols - 1, y, 6);
+                }
+                for (int x = 0; x < cols; x++)
+                {
+                    PlaceTile(x, rows - 1, 6);
+                }
+
+                PlaceTile(9, 9, 7);
+
+            }
+
+            void DrawGrid(std::array<Texture2D, TILE_COUNT> &tile_textures)
+            {
+                for (unsigned int y = 0; y < rows; y++)
+                {
+                    for (unsigned int x = 0; x < cols; x++)
+                    {
+                        const Tile tile = grid.at(y).at(x);
+                        const Texture2D tile_texture = tile_textures.at(tile.type);
+
+                        DrawTexture(tile_texture, x * TILE_RESOLUTION, y * TILE_RESOLUTION, WHITE);
+                    }
                 }
             }
+        };
 
-            BuildGrid();
-        }
+    class Player {
+        public:
+            Texture2D texture;
+            Vector2 position;
+            Vector2 size;
+            float speed;
 
-        void PlaceTile(unsigned int x, unsigned int y, unsigned int type)
-        {
-            grid.at(y).at(x).type = type;
-        }
-
-        void BuildGrid()
-        {
-            for (int y = 0; y < rows; y++)
+            Player(Texture2D texture) : texture(texture), position({0.0f, 0.0f}), size({8.0f, 8.0f}), speed(400.0f)
             {
-                PlaceTile(0, y, 6);
-            }
-            for (int x = 0; x < cols; x++)
-            {
-                PlaceTile(x, 0, 6);
-            }
-            for (int y = 0; y < rows; y++)
-            {
-                PlaceTile(cols - 1, y, 6);
-            }
-            for (int x = 0; x < cols; x++)
-            {
-                PlaceTile(x, rows - 1, 6);
             }
 
-            PlaceTile(9, 9, 7);
-
-        }
-
-        void DrawGrid(std::array<Texture2D, TILE_COUNT> &tile_textures)
-        {
-            for (unsigned int y = 0; y < rows; y++)
+            Vector2 GetCenter()
             {
-                for (unsigned int x = 0; x < cols; x++)
-                {
-                    const Tile tile = grid.at(y).at(x);
-                    const Texture2D tile_texture = tile_textures.at(tile.type);
-
-                    DrawTexture(tile_texture, x * TILE_RESOLUTION, y * TILE_RESOLUTION, WHITE);
-                }
+                return {position.x + size.x / 2, position.y + size.y / 2};
             }
-        }
-    };
-
-    class Player
-    {
-    public:
-        Texture2D texture;
-        Vector2 position;
-        Vector2 size;
-        float speed;
-
-        Player(Texture2D texture) : texture(texture), position({0.0f, 0.0f}), size({8.0f, 8.0f}), speed(400.0f)
-        {
-        }
-
-        Vector2 GetCenter()
-        {
-            return {position.x + size.x / 2, position.y + size.y / 2};
-        }
     };
 
     // NON-CONSTANTS
@@ -194,12 +189,10 @@ namespace Game
 
         return newPos;
     }
-
-
 };
 
-int main()
-{
+
+int main(){
     using Game::delta_time;
 
     Game::Init<32, 32>();
@@ -209,21 +202,18 @@ int main()
     Game::Player player(player_texture);
 
     using Game::camera;
-    while (!WindowShouldClose())
-    {
+    while (!WindowShouldClose()){
        // UPDATE
         delta_time = GetFrameTime();
         const Game::Input input = Game::Input::Capture();
 
         player.position = Game::UpdatePlayerPosition(player.position, input, player.speed, delta_time);
         float wheel = GetMouseWheelMove();
-        if (wheel != 0)
-        {
+        if (wheel != 0){
             // Get the world point that is under the mouse
             Vector2 mouseWorldPos = GetScreenToWorld2D(GetMousePosition(), camera);
 
-            if (Game::ZOOM_INTO_MOUSE)
-            {
+            if (Game::ZOOM_INTO_MOUSE){
                 // Set the offset to where the mouse is
                 camera.offset = GetMousePosition();
 
