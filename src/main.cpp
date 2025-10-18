@@ -19,17 +19,21 @@
 
 namespace Game{
     // CONSTANTS
-    constexpr unsigned int WINDOW_WIDTH = 800;
-    constexpr unsigned int WINDOW_HEIGHT = 600;
-    constexpr unsigned int TARGET_FRAMERATE = 60;
+    struct Config {
+        static constexpr unsigned int WINDOW_WIDTH = 800;
+        static constexpr unsigned int WINDOW_HEIGHT = 600;
+        static constexpr unsigned int TARGET_FRAMERATE = 60;
 
-    constexpr unsigned int TILE_RESOLUTION = 8;
-    constexpr unsigned int TILE_COUNT = 8;
+        static constexpr unsigned int TILE_RESOLUTION = 8;
+        static constexpr unsigned int TILE_COUNT = 8;
 
-    const unsigned int grid_size_x = 32;
-    const unsigned int grid_size_y = 32;
+        static constexpr unsigned int GRID_SIZE_X = 32;
+        static constexpr unsigned int GRID_SIZE_Y = 32;
 
-    constexpr bool ZOOM_INTO_MOUSE = false;
+        static constexpr bool ZOOM_INTO_MOUSE = false;
+
+        static constexpr unsigned int TILE_SIZE = TILE_RESOLUTION * TILE_COUNT;
+    };
 
     struct Input {
         const bool right, left, up, down;
@@ -96,7 +100,7 @@ namespace Game{
 
             }
 
-            void DrawGrid(std::array<Texture2D, TILE_COUNT> &tile_textures)
+            void DrawGrid(std::array<Texture2D, Config::TILE_COUNT> &tile_textures)
             {
                 for (unsigned int y = 0; y < rows; y++)
                 {
@@ -105,34 +109,62 @@ namespace Game{
                         const Tile tile = grid.at(y).at(x);
                         const Texture2D tile_texture = tile_textures.at(tile.type);
 
-                        DrawTexture(tile_texture, x * TILE_RESOLUTION, y * TILE_RESOLUTION, WHITE);
+                        DrawTexture(tile_texture, x * Config::TILE_RESOLUTION, y * Config::TILE_RESOLUTION, WHITE);
                     }
                 }
             }
         };
+    namespace Player {
+        struct State {
+            Vector2 position = {0.0f, 0.0f};
+            Vector2 size = {8.0f, 8.0f};
+            float move_speed = 400.0f;
 
-    class Player {
-        public:
-            Texture2D texture;
-            Vector2 position;
-            Vector2 size;
-            float speed;
-
-            Player(Texture2D texture) : texture(texture), position({0.0f, 0.0f}), size({8.0f, 8.0f}), speed(400.0f)
-            {
+            State MoveBy(Vector2 offset) const {
+                Vector2 new_position = {position.x + offset.x, position.y + offset.y};
+                return {new_position, size, move_speed};
             }
 
-            Vector2 GetCenter()
-            {
+            Vector2 GetCenter() const {
                 return {position.x + size.x / 2, position.y + size.y / 2};
             }
-    };
+        };
+
+        State New(
+            Vector2 position,
+            Vector2 size = {8.0f, 8.0f},
+            float move_speed = 400.0f){
+            return {position, size, move_speed};
+        }
+
+        State Update(
+            State& current_state,
+            const Input& input,
+            float deltaTime)
+        {
+            // Calculate movement based on input
+            float horizontal = (input.right ? 1.0f : 0.0f) - (input.left ? 1.0f : 0.0f);
+            float vertical = (input.up ? 1.0f : 0.0f) - (input.down ? 1.0f : 0.0f);
+
+            Vector2 offset = {
+                horizontal * current_state.move_speed * deltaTime,
+                -vertical * current_state.move_speed * deltaTime
+            };
+
+            return current_state.MoveBy(offset);
+
+        }
+
+        void Render(const State& state, const Texture2D& texture){
+            DrawTextureV(texture, state.position, WHITE);
+        }
+    }
 
     // NON-CONSTANTS
     Image tile_spritesheet;
-    std::array<Texture2D, TILE_COUNT> tile_textures;
+    std::array<Texture2D, Config::TILE_COUNT> tile_textures;
 
-    Grid<grid_size_x, grid_size_y> grid;
+    Grid<Config::GRID_SIZE_X, Config::GRID_SIZE_Y> grid;
 
     Camera2D camera = {0};
 
@@ -159,37 +191,19 @@ namespace Game{
     }
 
     template <size_t grid_size_x, size_t grid_size_y>
-    void Init()
-    {
-        InitWindow(Game::WINDOW_WIDTH, Game::WINDOW_HEIGHT, "raylib basic window");
-        SetTargetFPS(Game::TARGET_FRAMERATE);
+    void Init(){
+        InitWindow(Game::Config::WINDOW_WIDTH, Game::Config::WINDOW_HEIGHT, "raylib basic window");
+        SetTargetFPS(Game::Config::TARGET_FRAMERATE);
 
         Game::tile_spritesheet = LoadImage("assets/tiles.png");
-        Game::InitTileTextures(Game::tile_textures, Game::tile_spritesheet, Game::TILE_RESOLUTION);
+        Game::InitTileTextures(Game::tile_textures, Game::tile_spritesheet, Game::Config::TILE_RESOLUTION);
 
         camera.offset = {0.0f, 0.0f};
         camera.rotation = 0.0f;
         camera.zoom = 2.0f;
     }
 
-    Vector2 UpdatePlayerPosition(
-        Vector2 currentPos,
-        const Input& input,
-        float speed,
-        float deltaTime)
-    {
-        Vector2 newPos = currentPos;
-
-        // Calculate movement based on input
-        float horizontal = (input.right ? 1.0f : 0.0f) - (input.left ? 1.0f : 0.0f);
-        float vertical = (input.up ? 1.0f : 0.0f) - (input.down ? 1.0f : 0.0f);
-
-        newPos.x += horizontal * speed * deltaTime;
-        newPos.y -= vertical * speed * deltaTime;  // Y is inverted in your original
-
-        return newPos;
-    }
-};
+}
 
 
 int main(){
@@ -197,9 +211,9 @@ int main(){
 
     Game::Init<32, 32>();
 
+    Game::Player::State player = Game::Player::New({0.0f, 0.0f});
     Texture2D player_texture;
     SAFE_CALL(player_texture = LoadTexture("assets/player.png"));
-    Game::Player player(player_texture);
 
     using Game::camera;
     while (!WindowShouldClose()){
@@ -207,13 +221,14 @@ int main(){
         delta_time = GetFrameTime();
         const Game::Input input = Game::Input::Capture();
 
-        player.position = Game::UpdatePlayerPosition(player.position, input, player.speed, delta_time);
+        player = Game::Player::Update(player, input, delta_time);
+
         float wheel = GetMouseWheelMove();
         if (wheel != 0){
             // Get the world point that is under the mouse
             Vector2 mouseWorldPos = GetScreenToWorld2D(GetMousePosition(), camera);
 
-            if (Game::ZOOM_INTO_MOUSE){
+            if (Game::Config::ZOOM_INTO_MOUSE){
                 // Set the offset to where the mouse is
                 camera.offset = GetMousePosition();
 
@@ -229,7 +244,7 @@ int main(){
             camera.zoom = std::clamp(std::expf(std::logf(camera.zoom) + scale), 1 / 8.f, 64.0f);
         }
         camera.target = player.GetCenter();
-        camera.offset = {Game::WINDOW_WIDTH / 2, 1.f * Game::WINDOW_HEIGHT / 2};
+        camera.offset = {Game::Config::WINDOW_WIDTH / 2, 1.f * Game::Config::WINDOW_HEIGHT / 2};
 
 
         // DRAW
@@ -239,8 +254,7 @@ int main(){
 
         Game::grid.DrawGrid(Game::tile_textures);
 
-        DrawTextureEx(player.texture, player.position, 0.0f, 1.0f, WHITE);
-
+        Game::Player::Render(player , player_texture);
         DrawText("It works!", 32, 32, 32, WHITE);
 
         EndMode2D();
