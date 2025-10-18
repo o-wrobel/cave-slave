@@ -16,21 +16,7 @@
         std::cerr << "Error: " << e.what() << '\n'; \
     }
 
-namespace Input
-{
-    bool right_pressed;
-    bool left_pressed;
-    bool up_pressed;
-    bool down_pressed;
 
-    void Update()
-    {
-        right_pressed = IsKeyDown(KEY_A);
-        left_pressed = IsKeyDown(KEY_D);
-        up_pressed = IsKeyDown(KEY_W);
-        down_pressed = IsKeyDown(KEY_S);
-    }
-}
 
 namespace Game
 {
@@ -40,13 +26,26 @@ namespace Game
     constexpr unsigned int TARGET_FRAMERATE = 60;
 
     constexpr unsigned int TILE_RESOLUTION = 8;
-    constexpr unsigned int TILE_COUNT = 4;
+    constexpr unsigned int TILE_COUNT = 8;
 
     const unsigned int grid_size_x = 32;
     const unsigned int grid_size_y = 32;
 
     constexpr bool ZOOM_INTO_MOUSE = false;
 
+    struct Input {
+        const bool right, left, up, down;
+
+        static Input Capture()
+        {
+            return Input{
+                IsKeyDown(KEY_D),
+                IsKeyDown(KEY_A),
+                IsKeyDown(KEY_W),
+                IsKeyDown(KEY_S)
+            };
+        }
+    };
     // STRUCTS
     struct Tile
     {
@@ -73,24 +72,32 @@ namespace Game
             BuildGrid();
         }
 
+        void PlaceTile(unsigned int x, unsigned int y, unsigned int type)
+        {
+            grid.at(y).at(x).type = type;
+        }
+
         void BuildGrid()
         {
             for (int y = 0; y < rows; y++)
             {
-                grid.at(y).at(0).type = 3;
+                PlaceTile(0, y, 6);
             }
             for (int x = 0; x < cols; x++)
             {
-                grid.at(0).at(x).type = 3;
+                PlaceTile(x, 0, 6);
             }
             for (int y = 0; y < rows; y++)
             {
-                grid.at(y).at(cols - 1).type = 1;
+                PlaceTile(cols - 1, y, 6);
             }
             for (int x = 0; x < cols; x++)
             {
-                grid.at(rows - 1).at(x).type = 2;
+                PlaceTile(x, rows - 1, 6);
             }
+
+            PlaceTile(9, 9, 7);
+
         }
 
         void DrawGrid(std::array<Texture2D, TILE_COUNT> &tile_textures)
@@ -139,9 +146,9 @@ namespace Game
     // FUNCTIONS
     template <size_t tile_count>
     void InitTileTextures(
-        std::array<Texture2D, tile_count> &tile_textures = tile_textures,
-        const Image &tile_spritesheet = tile_spritesheet,
-        unsigned int tile_resolution = TILE_RESOLUTION)
+        std::array<Texture2D, tile_count> &tile_textures,
+        const Image &tile_spritesheet,
+        unsigned int tile_resolution)
     {
 
         Rectangle source_rect = {0.0f, 0.0f, (float)tile_resolution, (float)tile_resolution};
@@ -163,12 +170,31 @@ namespace Game
         SetTargetFPS(Game::TARGET_FRAMERATE);
 
         Game::tile_spritesheet = LoadImage("assets/tiles.png");
-        Game::InitTileTextures(Game::tile_textures);
+        Game::InitTileTextures(Game::tile_textures, Game::tile_spritesheet, Game::TILE_RESOLUTION);
 
         camera.offset = {0.0f, 0.0f};
         camera.rotation = 0.0f;
         camera.zoom = 2.0f;
     }
+
+    Vector2 UpdatePlayerPosition(
+        Vector2 currentPos,
+        const Input& input,
+        float speed,
+        float deltaTime)
+    {
+        Vector2 newPos = currentPos;
+
+        // Calculate movement based on input
+        float horizontal = (input.right ? 1.0f : 0.0f) - (input.left ? 1.0f : 0.0f);
+        float vertical = (input.up ? 1.0f : 0.0f) - (input.down ? 1.0f : 0.0f);
+
+        newPos.x += horizontal * speed * deltaTime;
+        newPos.y -= vertical * speed * deltaTime;  // Y is inverted in your original
+
+        return newPos;
+    }
+
 
 };
 
@@ -182,15 +208,14 @@ int main()
     SAFE_CALL(player_texture = LoadTexture("assets/player.png"));
     Game::Player player(player_texture);
 
+    using Game::camera;
     while (!WindowShouldClose())
     {
-        // UPDATE
+       // UPDATE
         delta_time = GetFrameTime();
+        const Game::Input input = Game::Input::Capture();
 
-        player.position.x += player.speed * delta_time * (IsKeyDown(KEY_RIGHT) - IsKeyDown(KEY_LEFT));
-        player.position.y -= player.speed * delta_time * (IsKeyDown(KEY_UP) - IsKeyDown(KEY_DOWN));
-
-        using Game::camera;
+        player.position = Game::UpdatePlayerPosition(player.position, input, player.speed, delta_time);
         float wheel = GetMouseWheelMove();
         if (wheel != 0)
         {
