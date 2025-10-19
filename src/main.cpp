@@ -3,8 +3,6 @@
 #include <cmath>
 #include <algorithm>
 
-#include <iostream>
-
 
 #define SAFE_CALL(expr)                             \
     try                                             \
@@ -34,19 +32,35 @@ namespace Game{
         static constexpr unsigned int TILE_SIZE = TILE_RESOLUTION * TILE_COUNT;
     };
 
+
     struct Input {
+
+        struct Pressed{
+            bool space;
+        };
+
+        struct Held{
+            const bool right, left, up, down, space;
+        };
+
         const Vector2 mouse_position;
-        const bool right, left, up, down, space;
+        const Held held;
+        const Pressed pressed;
 
         static Input Capture()
         {
             return Input{
                 GetMousePosition(),
-                IsKeyDown(KEY_D),
-                IsKeyDown(KEY_A),
-                IsKeyDown(KEY_W),
-                IsKeyDown(KEY_S),
-                IsKeyDown(KEY_SPACE)
+
+                Held{
+                    IsKeyDown(KEY_D),
+                    IsKeyDown(KEY_A),
+                    IsKeyDown(KEY_W),
+                    IsKeyDown(KEY_S),
+                    IsKeyDown(KEY_SPACE),
+                },
+
+                Pressed{IsKeyPressed(KEY_SPACE)}
             };
         }
     };
@@ -138,8 +152,8 @@ namespace Game{
                 float delta_time)
             {
                 // Calculate movement based on input
-                float horizontal = (input.right ? 1.0f : 0.0f) - (input.left ? 1.0f : 0.0f);
-                float vertical = (input.up ? 1.0f : 0.0f) - (input.down ? 1.0f : 0.0f);
+                float horizontal = (input.held.right ? 1.0f : 0.0f) - (input.held.left ? 1.0f : 0.0f);
+                float vertical = (input.held.up ? 1.0f : 0.0f) - (input.held.down ? 1.0f : 0.0f);
 
                 Vector2 offset = {
                     horizontal * move_speed * delta_time,
@@ -214,6 +228,7 @@ namespace Game{
     Texture2D player_texture;
 
     Camera::State camera;
+    unsigned int tile_place_type = 1;
 
     float delta_time;
 
@@ -261,12 +276,18 @@ namespace Game{
         float wheel = GetMouseWheelMove();
 
         player.Update(input, delta_time);
+        if (input.pressed.space){
+            tile_place_type++;
+            if (tile_place_type >= Config::TILE_COUNT){
+                tile_place_type = 0;
+            }
+        }
         if (IsMouseButtonDown(0)){
             Vector2 mouse_grid_position = GetScreenToWorld2D(input.mouse_position, camera.ToCamera2D());
             grid.Place(
                 floor(mouse_grid_position.x / Config::TILE_RESOLUTION),
                 floor(mouse_grid_position.y / Config::TILE_RESOLUTION),
-                3);
+                tile_place_type);
         }
 
         camera.Update(player.GetCenter(), wheel, Config::WINDOW_WIDTH, Config::WINDOW_HEIGHT);
