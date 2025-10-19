@@ -34,16 +34,17 @@ namespace Game{
 
 
     struct Input {
-
         struct Pressed{
             bool space;
         };
 
         struct Held{
             const bool right, left, up, down, space;
+            const bool lmb, rmb;
         };
 
         const Vector2 mouse_position;
+        const float mouse_wheel;
         const Held held;
         const Pressed pressed;
 
@@ -51,6 +52,7 @@ namespace Game{
         {
             return Input{
                 GetMousePosition(),
+                GetMouseWheelMove(),
 
                 Held{
                     IsKeyDown(KEY_D),
@@ -58,11 +60,14 @@ namespace Game{
                     IsKeyDown(KEY_W),
                     IsKeyDown(KEY_S),
                     IsKeyDown(KEY_SPACE),
+                    IsMouseButtonDown(0),
+                    IsMouseButtonDown(1)
                 },
 
                 Pressed{IsKeyPressed(KEY_SPACE)}
             };
         }
+
     };
 
     namespace Level {
@@ -269,20 +274,14 @@ namespace Game{
 
     }
 
-    void Update(){
-        delta_time = GetFrameTime();
-
-        const Input input = Input::Capture();
-        float wheel = GetMouseWheelMove();
-
-        player.Update(input, delta_time);
+    void UpdateTilePlacing(Input input){
         if (input.pressed.space){
             tile_place_type++;
             if (tile_place_type >= Config::TILE_COUNT){
                 tile_place_type = 0;
             }
         }
-        if (IsMouseButtonDown(0)){
+        if (input.held.lmb){
             Vector2 mouse_grid_position = GetScreenToWorld2D(input.mouse_position, camera.ToCamera2D());
             grid.Place(
                 floor(mouse_grid_position.x / Config::TILE_RESOLUTION),
@@ -290,7 +289,17 @@ namespace Game{
                 tile_place_type);
         }
 
-        camera.Update(player.GetCenter(), wheel, Config::WINDOW_WIDTH, Config::WINDOW_HEIGHT);
+    }
+
+    void Update(){
+        delta_time = GetFrameTime();
+        const Input input = Input::Capture();
+
+        UpdateTilePlacing(input);
+
+        player.Update(input, delta_time);
+
+        camera.Update(player.GetCenter(), input.mouse_wheel, Config::WINDOW_WIDTH, Config::WINDOW_HEIGHT);
 
     }
 
