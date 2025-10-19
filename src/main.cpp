@@ -46,58 +46,59 @@ namespace Game{
         }
     };
 
-    struct Tile {
-        unsigned int type;
-    };
+    namespace Level {
+        struct Tile {
+            unsigned int type;
+        };
 
-    template <size_t rows, size_t cols>
-    struct Grid{
-        std::array<std::array<Tile, cols>, rows> tiles;
+        template <size_t rows, size_t cols>
+        struct Grid{
+            std::array<std::array<Tile, cols>, rows> tiles;
 
-        void Place(unsigned int x, unsigned int y, unsigned int type){
-            tiles.at(y).at(x).type = type;
-        }
-
-        Tile GetTile(unsigned int x, unsigned int y){
-            return tiles.at(y).at(x);
-        }
-
-        static Grid NewDefault(){
-            Grid grid;
-            for (int y = 0; y < rows; y++)
-            {
-                grid.Place(0, y, 6);
-            }
-            for (int x = 0; x < cols; x++)
-            {
-                grid.Place(x, 0, 6);
-            }
-            for (int y = 0; y < rows; y++)
-            {
-                grid.Place(cols - 1, y, 6);
-            }
-            for (int x = 0; x < cols; x++)
-            {
-                grid.Place(x, rows - 1, 6);
+            void Place(unsigned int x, unsigned int y, unsigned int type){
+                tiles.at(y).at(x).type = type;
             }
 
-            return grid;
-        }
+            Tile GetTile(unsigned int x, unsigned int y){
+                return tiles.at(y).at(x);
+            }
 
-    };
+            static Grid NewDefault(){
+                Grid grid;
+                for (int y = 0; y < rows; y++)
+                {
+                    grid.Place(0, y, 6);
+                }
+                for (int x = 0; x < cols; x++)
+                {
+                    grid.Place(x, 0, 6);
+                }
+                for (int y = 0; y < rows; y++)
+                {
+                    grid.Place(cols - 1, y, 6);
+                }
+                for (int x = 0; x < cols; x++)
+                {
+                    grid.Place(x, rows - 1, 6);
+                }
 
-    //TODO: Move this to the struct as a static
-    template <size_t rows, size_t cols>
-    void RenderGrid(Grid<rows, cols> grid, std::array<Texture2D, Config::TILE_COUNT> &tile_textures)
-    {
-        for (unsigned int y = 0; y < rows; y++)
+                return grid;
+            }
+
+        };
+
+        template <size_t rows, size_t cols>
+        void Render(Grid<rows, cols> grid, std::array<Texture2D, Config::TILE_COUNT> &tile_textures)
         {
-            for (unsigned int x = 0; x < cols; x++)
+            for (unsigned int y = 0; y < rows; y++)
             {
-                const Tile tile = grid.GetTile(x, y);
-                const Texture2D tile_texture = tile_textures.at(tile.type);
+                for (unsigned int x = 0; x < cols; x++)
+                {
+                    const Tile tile = grid.GetTile(x, y);
+                    const Texture2D tile_texture = tile_textures.at(tile.type);
 
-                DrawTexture(tile_texture, x * Config::TILE_RESOLUTION, y * Config::TILE_RESOLUTION, WHITE);
+                    DrawTexture(tile_texture, x * Config::TILE_RESOLUTION, y * Config::TILE_RESOLUTION, WHITE);
+                }
             }
         }
     }
@@ -199,7 +200,7 @@ namespace Game{
     Image tile_spritesheet;
     std::array<Texture2D, Config::TILE_COUNT> tile_textures;
 
-    auto grid = Grid<Config::GRID_SIZE_X, Config::GRID_SIZE_Y>::NewDefault();
+    auto grid = Level::Grid<Config::GRID_SIZE_X, Config::GRID_SIZE_Y>::NewDefault();
 
     Player::State player = Player::State::New({0, 0});
     Texture2D player_texture;
@@ -259,14 +260,18 @@ namespace Game{
     void Render(){
         BeginDrawing();
         ClearBackground(BLACK);
+
         BeginMode2D(camera.ToCamera2D());
 
-        RenderGrid(grid, tile_textures);
-
+        Level::Render(grid, tile_textures);
         Player::Render(player , player_texture);
-        DrawText("It works!", 32, 32, 32, WHITE);
 
         EndMode2D();
+
+        //Draw UI
+        DrawText("It works!", 32, 32, 32, WHITE);
+        DrawFPS(60, 60);
+
         EndDrawing();
     }
 
