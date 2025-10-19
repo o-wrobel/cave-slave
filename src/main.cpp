@@ -16,7 +16,6 @@
 
 
 namespace Game{
-    // CONSTANTS
     struct Config {
         static constexpr unsigned int WINDOW_WIDTH = 800;
         static constexpr unsigned int WINDOW_HEIGHT = 600;
@@ -47,7 +46,6 @@ namespace Game{
         }
     };
 
-    // STRUCTS
     struct Tile {
         unsigned int type;
     };
@@ -154,19 +152,44 @@ namespace Game{
             Vector2 offset = {0., 0.};
             Vector2 target = {0., 0.};
             float rotation = 0.;
-            float zoom = 1.;
+            float zoom = 2.;
 
             Camera2D ToCamera2D() const {
                 return {offset, target, rotation, zoom};
             }
 
-            void FollowPlayer(State& state, Vector2 player_center, float window_width, float window_height){
-                state.target = player_center;
-                state.offset = {window_width / 2, window_height / 2};
+            void SetZoom(float mouse_wheel_input){
+
+                    if (mouse_wheel_input != 0){
+                        // Get the world point that is under the mouse
+                        Vector2 mouseWorldPos = GetScreenToWorld2D(GetMousePosition(), ToCamera2D());
+
+                        if (Config::ZOOM_INTO_MOUSE){
+                            // Set the offset to where the mouse is
+                            offset = GetMousePosition();
+
+                            // Set the target to match, so that the camera maps the world space point
+                            // under the cursor to the screen space point under the cursor at any zoom
+                            target = mouseWorldPos;
+
+                        }
+
+                        // Zoom increment
+                        // Uses log scaling to provide consistent zoom speed
+                        float scale = 0.2f * mouse_wheel_input;
+                        zoom = std::clamp(std::expf(std::logf(zoom) + scale), 1 / 8.f, 64.0f);
+
+                    }
             }
 
-            void Update(State& state, Vector2 player_center, float window_width, float window_height){
-                FollowPlayer(state, player_center, window_width, window_height);
+            void FollowPlayer(Vector2 player_center, float window_width, float window_height){
+                target = player_center;
+                offset = {window_width / 2, window_height / 2};
+            }
+
+            void Update(Vector2 player_center, float mouse_wheel_input, float window_width, float window_height){
+                FollowPlayer(player_center, window_width, window_height);
+                SetZoom(mouse_wheel_input);
             }
         };
 
@@ -181,7 +204,6 @@ namespace Game{
     Player::State player = Player::State::New({0, 0});
     Texture2D player_texture;
 
-    Camera2D camera_placeholder;
     Camera::State camera;
 
     float delta_time;
@@ -221,45 +243,23 @@ namespace Game{
 
         player_texture = LoadTexture("assets/player.png");
 
-        camera_placeholder.offset = {0.0f, 0.0f};
-        camera_placeholder.rotation = 0.0f;
-        camera_placeholder.zoom = 2.0f;
     }
 
     void Update(){
         delta_time = GetFrameTime();
         const Input input = Input::Capture();
+        float wheel = GetMouseWheelMove();
 
         player = Player::State::Update(player, input, delta_time);
 
-        float wheel = GetMouseWheelMove();
-        if (wheel != 0){
-            // Get the world point that is under the mouse
-            Vector2 mouseWorldPos = GetScreenToWorld2D(GetMousePosition(), camera_placeholder);
+        camera.Update(player.GetCenter(), wheel, Config::WINDOW_WIDTH, Config::WINDOW_HEIGHT);
 
-            if (Config::ZOOM_INTO_MOUSE){
-                // Set the offset to where the mouse is
-                camera_placeholder.offset = GetMousePosition();
-
-                // Set the target to match, so that the camera maps the world space point
-                // under the cursor to the screen space point under the cursor at any zoom
-                camera_placeholder.target = mouseWorldPos;
-
-            }
-
-            // Zoom increment
-            // Uses log scaling to provide consistent zoom speed
-            float scale = 0.2f * wheel;
-            camera_placeholder.zoom = std::clamp(std::expf(std::logf(camera_placeholder.zoom) + scale), 1 / 8.f, 64.0f);
-        }
-        camera_placeholder.target = player.GetCenter();
-        camera_placeholder.offset = {(float)Config::WINDOW_WIDTH / 2, (float)Config::WINDOW_HEIGHT / 2};
     }
 
     void Render(){
         BeginDrawing();
         ClearBackground(BLACK);
-        BeginMode2D(camera_placeholder);
+        BeginMode2D(camera.ToCamera2D());
 
         RenderGrid(grid, tile_textures);
 
