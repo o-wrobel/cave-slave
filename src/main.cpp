@@ -66,7 +66,7 @@ namespace Game{
             return tiles.at(y).at(x);
         }
 
-        static Grid NewBox(){
+        static Grid NewDefault(){
             Grid grid;
             for (int y = 0; y < rows; y++)
             {
@@ -90,6 +90,7 @@ namespace Game{
 
     };
 
+    //TODO: Move this to the struct as a static
     template <size_t rows, size_t cols>
     void RenderGrid(Grid<rows, cols> grid, std::array<Texture2D, Config::TILE_COUNT> &tile_textures)
     {
@@ -154,7 +155,7 @@ namespace Game{
     Image tile_spritesheet;
     std::array<Texture2D, Config::TILE_COUNT> tile_textures;
 
-    auto grid = Grid<Config::GRID_SIZE_X, Config::GRID_SIZE_Y>::NewBox();
+    auto grid = Grid<Config::GRID_SIZE_X, Config::GRID_SIZE_Y>::NewDefault();
 
     Camera2D camera;
 
@@ -162,31 +163,36 @@ namespace Game{
 
     // FUNCTIONS
     template <size_t tile_count>
-    void InitTileTextures(
-        std::array<Texture2D, tile_count> &tile_textures,
-        const Image &tile_spritesheet,
+    std::array<Texture2D, tile_count> InitTileTextures(
+        const Image &spritesheet,
         unsigned int tile_resolution)
     {
+        std::array<Texture2D, tile_count> textures;
 
         Rectangle source_rect = {0.0f, 0.0f, (float)tile_resolution, (float)tile_resolution};
-        for (unsigned int i = 0; i < tile_count; i++)
-        {
-            source_rect.x = i * tile_resolution % (tile_spritesheet.width);
-            source_rect.y = floor(i / (tile_spritesheet.width / tile_resolution)) * tile_resolution;
 
-            Image sub_image = ImageFromImage(tile_spritesheet, source_rect);
-            tile_textures.at(i) = LoadTextureFromImage(sub_image);
+        size_t index = 0;
+        std::generate(textures.begin(), textures.end(), [&]() -> Texture2D {
+
+            source_rect.x = index * tile_resolution % (spritesheet.width);
+            source_rect.y = floor(index / (spritesheet.width / tile_resolution)) * tile_resolution;
+
+            Image sub_image = ImageFromImage(spritesheet, source_rect);
+            Texture2D texture = LoadTextureFromImage(sub_image);
             UnloadImage(sub_image);
-        }
+            index++;
+            return texture;
+        });
+
+        return textures;
     }
 
-    template <size_t grid_size_x, size_t grid_size_y>
     void Init(){
         InitWindow(Config::WINDOW_WIDTH, Config::WINDOW_HEIGHT, "raylib basic window");
         SetTargetFPS(Config::TARGET_FRAMERATE);
 
         tile_spritesheet = LoadImage("assets/tiles.png");
-        InitTileTextures(tile_textures, tile_spritesheet, Config::TILE_RESOLUTION);
+        tile_textures = InitTileTextures<Config::TILE_COUNT>(tile_spritesheet, Config::TILE_RESOLUTION);
 
         camera.offset = {0.0f, 0.0f};
         camera.rotation = 0.0f;
@@ -199,7 +205,7 @@ namespace Game{
 int main(){
     using Game::delta_time;
 
-    Game::Init<32, 32>();
+    Game::Init();
 
     Game::Player::State player = Game::Player::State::New({0.0f, 0.0f});
     Texture2D player_texture;
