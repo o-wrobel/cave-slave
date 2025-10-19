@@ -3,6 +3,8 @@
 #include <cmath>
 #include <algorithm>
 
+#include <iostream>
+
 
 #define SAFE_CALL(expr)                             \
     try                                             \
@@ -24,8 +26,8 @@ namespace Game{
         static constexpr unsigned int TILE_RESOLUTION = 8;
         static constexpr unsigned int TILE_COUNT = 8;
 
-        static constexpr unsigned int GRID_SIZE_X = 32;
-        static constexpr unsigned int GRID_SIZE_Y = 32;
+        static constexpr unsigned int GRID_SIZE_X = 64;
+        static constexpr unsigned int GRID_SIZE_Y = 20;
 
         static constexpr bool ZOOM_INTO_MOUSE = false;
 
@@ -33,11 +35,13 @@ namespace Game{
     };
 
     struct Input {
+        const Vector2 mouse_position;
         const bool right, left, up, down, space;
 
         static Input Capture()
         {
             return Input{
+                GetMousePosition(),
                 IsKeyDown(KEY_D),
                 IsKeyDown(KEY_A),
                 IsKeyDown(KEY_W),
@@ -52,12 +56,12 @@ namespace Game{
             unsigned int type;
         };
 
-        template <size_t rows, size_t cols>
+        template <size_t cols, size_t rows>
         struct Grid{
             std::array<std::array<Tile, cols>, rows> tiles;
 
             void Place(unsigned int x, unsigned int y, unsigned int type){
-                if (0 <= x && x < rows && 0 <= y && y < cols){
+                if (0 <= x && x < cols && 0 <= y && y < rows){
                     tiles.at(y).at(x).type = type;
 
                 }
@@ -91,8 +95,8 @@ namespace Game{
 
         };
 
-        template <size_t rows, size_t cols>
-        void Render(Grid<rows, cols> grid, std::array<Texture2D, Config::TILE_COUNT> &tile_textures)
+        template <size_t cols, size_t rows>
+        void Render(Grid<cols, rows> grid, std::array<Texture2D, Config::TILE_COUNT> &tile_textures)
         {
             for (unsigned int y = 0; y < rows; y++)
             {
@@ -257,11 +261,12 @@ namespace Game{
         float wheel = GetMouseWheelMove();
 
         player.Update(input, delta_time);
-        if (input.space){
+        if (IsMouseButtonDown(0)){
+            Vector2 mouse_grid_position = GetScreenToWorld2D(input.mouse_position, camera.ToCamera2D());
             grid.Place(
-                floor(player.GetCenter().x / Config::TILE_RESOLUTION),
-                floor(player.GetCenter().y / Config::TILE_RESOLUTION),
-                6);
+                floor(mouse_grid_position.x / Config::TILE_RESOLUTION),
+                floor(mouse_grid_position.y / Config::TILE_RESOLUTION),
+                3);
         }
 
         camera.Update(player.GetCenter(), wheel, Config::WINDOW_WIDTH, Config::WINDOW_HEIGHT);
@@ -274,7 +279,7 @@ namespace Game{
 
         BeginMode2D(camera.ToCamera2D());
 
-        Level::Render(grid, tile_textures);
+        Level::Render<Config::GRID_SIZE_X, Config::GRID_SIZE_Y>(grid, tile_textures);
         Player::Render(player , player_texture);
 
         EndMode2D();
