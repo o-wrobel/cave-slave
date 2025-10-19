@@ -33,7 +33,7 @@ namespace Game{
     };
 
     struct Input {
-        const bool right, left, up, down;
+        const bool right, left, up, down, space;
 
         static Input Capture()
         {
@@ -41,7 +41,8 @@ namespace Game{
                 IsKeyDown(KEY_D),
                 IsKeyDown(KEY_A),
                 IsKeyDown(KEY_W),
-                IsKeyDown(KEY_S)
+                IsKeyDown(KEY_S),
+                IsKeyDown(KEY_SPACE)
             };
         }
     };
@@ -56,7 +57,10 @@ namespace Game{
             std::array<std::array<Tile, cols>, rows> tiles;
 
             void Place(unsigned int x, unsigned int y, unsigned int type){
-                tiles.at(y).at(x).type = type;
+                if (0 <= x && x < rows && 0 <= y && y < cols){
+                    tiles.at(y).at(x).type = type;
+
+                }
             }
 
             Tile GetTile(unsigned int x, unsigned int y){
@@ -127,15 +131,15 @@ namespace Game{
 
             void Update(
                 const Input& input,
-                float deltaTime)
+                float delta_time)
             {
                 // Calculate movement based on input
                 float horizontal = (input.right ? 1.0f : 0.0f) - (input.left ? 1.0f : 0.0f);
                 float vertical = (input.up ? 1.0f : 0.0f) - (input.down ? 1.0f : 0.0f);
 
                 Vector2 offset = {
-                    horizontal * move_speed * deltaTime,
-                    -vertical * move_speed * deltaTime
+                    horizontal * move_speed * delta_time,
+                    -vertical * move_speed * delta_time
                 };
 
                 MoveBy(offset);
@@ -248,9 +252,17 @@ namespace Game{
 
     void Update(){
         delta_time = GetFrameTime();
+
         const Input input = Input::Capture();
         float wheel = GetMouseWheelMove();
+
         player.Update(input, delta_time);
+        if (input.space){
+            grid.Place(
+                floor(player.GetCenter().x / Config::TILE_RESOLUTION),
+                floor(player.GetCenter().y / Config::TILE_RESOLUTION),
+                6);
+        }
 
         camera.Update(player.GetCenter(), wheel, Config::WINDOW_WIDTH, Config::WINDOW_HEIGHT);
 
