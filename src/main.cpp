@@ -105,27 +105,27 @@ namespace Game{
 
     namespace Player {
         struct State {
-            Vector2 position = {0.0f, 0.0f};
-            Vector2 size = {8.0f, 8.0f};
-            float move_speed = 400.0f;
+            Vector2 position;
+            Vector2 size;
+            float move_speed;
 
-            State MoveBy(Vector2 offset) const {
+            void MoveBy(Vector2 offset) {
                 Vector2 new_position = {position.x + offset.x, position.y + offset.y};
-                return {new_position, size, move_speed};
+                position.x += offset.x;
+                position.y += offset.y;
             }
 
             Vector2 GetCenter() const {
                 return {position.x + size.x / 2, position.y + size.y / 2};
             }
             static State New(
-                        Vector2 position,
+                        Vector2 position = {0., 0.},
                         Vector2 size = {8.0f, 8.0f},
                         float move_speed = 400.0f){
                         return {position, size, move_speed};
                     }
 
-            static State Update(
-                State& current_state,
+            void Update(
                 const Input& input,
                 float deltaTime)
             {
@@ -134,11 +134,11 @@ namespace Game{
                 float vertical = (input.up ? 1.0f : 0.0f) - (input.down ? 1.0f : 0.0f);
 
                 Vector2 offset = {
-                    horizontal * current_state.move_speed * deltaTime,
-                    -vertical * current_state.move_speed * deltaTime
+                    horizontal * move_speed * deltaTime,
+                    -vertical * move_speed * deltaTime
                 };
 
-                return current_state.MoveBy(offset);
+                MoveBy(offset);
 
             }
         };
@@ -148,7 +148,7 @@ namespace Game{
         }
     }
 
-    namespace Camera{
+    namespace Camera {
         struct State {
             Vector2 offset = {0., 0.};
             Vector2 target = {0., 0.};
@@ -250,8 +250,7 @@ namespace Game{
         delta_time = GetFrameTime();
         const Input input = Input::Capture();
         float wheel = GetMouseWheelMove();
-
-        player = Player::State::Update(player, input, delta_time);
+        player.Update(input, delta_time);
 
         camera.Update(player.GetCenter(), wheel, Config::WINDOW_WIDTH, Config::WINDOW_HEIGHT);
 
