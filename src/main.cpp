@@ -1,10 +1,8 @@
 #include <raylib.h>
-#include <iostream>
 #include <array>
 #include <cmath>
 #include <algorithm>
 
-// #include "game.h"
 
 #define SAFE_CALL(expr)                             \
     try                                             \
@@ -151,13 +149,40 @@ namespace Game{
         }
     }
 
+    namespace Camera{
+        struct State {
+            Vector2 offset = {0., 0.};
+            Vector2 target = {0., 0.};
+            float rotation = 0.;
+            float zoom = 1.;
+
+            Camera2D ToCamera2D() const {
+                return {offset, target, rotation, zoom};
+            }
+
+            void FollowPlayer(State& state, Vector2 player_center, float window_width, float window_height){
+                state.target = player_center;
+                state.offset = {window_width / 2, window_height / 2};
+            }
+
+            void Update(State& state, Vector2 player_center, float window_width, float window_height){
+                FollowPlayer(state, player_center, window_width, window_height);
+            }
+        };
+
+    }
+
     // NON-CONSTANTS
     Image tile_spritesheet;
     std::array<Texture2D, Config::TILE_COUNT> tile_textures;
 
     auto grid = Grid<Config::GRID_SIZE_X, Config::GRID_SIZE_Y>::NewDefault();
 
-    Camera2D camera;
+    Player::State player = Player::State::New({0, 0});
+    Texture2D player_texture;
+
+    Camera2D camera_placeholder;
+    Camera::State camera;
 
     float delta_time;
 
@@ -175,7 +200,7 @@ namespace Game{
         std::generate(textures.begin(), textures.end(), [&]() -> Texture2D {
 
             source_rect.x = index * tile_resolution % (spritesheet.width);
-            source_rect.y = floor(index / (spritesheet.width / tile_resolution)) * tile_resolution;
+            source_rect.y = floor((float)index / ((float)spritesheet.width / tile_resolution)) * tile_resolution;
 
             Image sub_image = ImageFromImage(spritesheet, source_rect);
             Texture2D texture = LoadTextureFromImage(sub_image);
@@ -194,67 +219,66 @@ namespace Game{
         tile_spritesheet = LoadImage("assets/tiles.png");
         tile_textures = InitTileTextures<Config::TILE_COUNT>(tile_spritesheet, Config::TILE_RESOLUTION);
 
-        camera.offset = {0.0f, 0.0f};
-        camera.rotation = 0.0f;
-        camera.zoom = 2.0f;
+        player_texture = LoadTexture("assets/player.png");
+
+        camera_placeholder.offset = {0.0f, 0.0f};
+        camera_placeholder.rotation = 0.0f;
+        camera_placeholder.zoom = 2.0f;
     }
 
-}
-
-
-int main(){
-    using Game::delta_time;
-
-    Game::Init();
-
-    Game::Player::State player = Game::Player::State::New({0.0f, 0.0f});
-    Texture2D player_texture;
-    SAFE_CALL(player_texture = LoadTexture("assets/player.png"));
-
-    using Game::camera;
-    while (!WindowShouldClose()){
-       // UPDATE
+    void Update(){
         delta_time = GetFrameTime();
-        const Game::Input input = Game::Input::Capture();
+        const Input input = Input::Capture();
 
-        player = Game::Player::State::Update(player, input, delta_time);
+        player = Player::State::Update(player, input, delta_time);
 
         float wheel = GetMouseWheelMove();
         if (wheel != 0){
             // Get the world point that is under the mouse
-            Vector2 mouseWorldPos = GetScreenToWorld2D(GetMousePosition(), camera);
+            Vector2 mouseWorldPos = GetScreenToWorld2D(GetMousePosition(), camera_placeholder);
 
-            if (Game::Config::ZOOM_INTO_MOUSE){
+            if (Config::ZOOM_INTO_MOUSE){
                 // Set the offset to where the mouse is
-                camera.offset = GetMousePosition();
+                camera_placeholder.offset = GetMousePosition();
 
                 // Set the target to match, so that the camera maps the world space point
                 // under the cursor to the screen space point under the cursor at any zoom
-                camera.target = mouseWorldPos;
+                camera_placeholder.target = mouseWorldPos;
 
             }
 
             // Zoom increment
             // Uses log scaling to provide consistent zoom speed
             float scale = 0.2f * wheel;
-            camera.zoom = std::clamp(std::expf(std::logf(camera.zoom) + scale), 1 / 8.f, 64.0f);
+            camera_placeholder.zoom = std::clamp(std::expf(std::logf(camera_placeholder.zoom) + scale), 1 / 8.f, 64.0f);
         }
-        camera.target = player.GetCenter();
-        camera.offset = {Game::Config::WINDOW_WIDTH / 2, 1.f * Game::Config::WINDOW_HEIGHT / 2};
+        camera_placeholder.target = player.GetCenter();
+        camera_placeholder.offset = {(float)Config::WINDOW_WIDTH / 2, (float)Config::WINDOW_HEIGHT / 2};
+    }
 
-
-        // DRAW
+    void Render(){
         BeginDrawing();
         ClearBackground(BLACK);
-        BeginMode2D(Game::camera);
+        BeginMode2D(camera_placeholder);
 
-        Game::RenderGrid(Game::grid, Game::tile_textures);
+        RenderGrid(grid, tile_textures);
 
-        Game::Player::Render(player , player_texture);
+        Player::Render(player , player_texture);
         DrawText("It works!", 32, 32, 32, WHITE);
 
         EndMode2D();
         EndDrawing();
+    }
+
+}
+
+
+int main(){
+    Game::Init();
+
+    while (!WindowShouldClose()){
+        Game::Update();
+        Game::Render();
     }
     CloseWindow();
     return 0;
