@@ -2,6 +2,7 @@
 #include <array>
 #include <cmath>
 #include <algorithm>
+#include <vector>
 
 
 #define SAFE_CALL(expr)                             \
@@ -80,38 +81,48 @@ namespace Game{
             unsigned int type;
         };
 
-        template <size_t cols, size_t rows>
         struct Grid{
-            std::array<std::array<Tile, cols>, rows> tiles;
+            const unsigned int size_x;
+            const unsigned int size_y;
+
+            std::vector<std::vector<Tile>> tiles;
+
+            Grid(size_t width, size_t height) :
+            size_x(width),
+            size_y(height),
+            tiles(height, std::vector<Tile>(width))
+            {
+
+            }
 
             void Place(unsigned int x, unsigned int y, unsigned int type){
-                if (0 <= x && x < cols && 0 <= y && y < rows){
+                if (0 <= x && x < size_x && 0 <= y && y < size_y){
                     tiles.at(y).at(x).type = type;
 
                 }
             }
 
-            Tile GetTile(unsigned int x, unsigned int y){
+            Tile& GetTile(unsigned int x, unsigned int y){
                 return tiles.at(y).at(x);
             }
 
-            static Grid NewDefault(){
-                Grid grid;
-                for (int y = 0; y < rows; y++)
+            static Grid NewDefault(unsigned int width = Config::GRID_SIZE_X, unsigned int height = Config::GRID_SIZE_Y){
+                Grid grid(width, height);
+                for (int y = 0; y < height; y++)
                 {
                     grid.Place(0, y, 6);
                 }
-                for (int x = 0; x < cols; x++)
+                for (int x = 0; x < width; x++)
                 {
                     grid.Place(x, 0, 6);
                 }
-                for (int y = 0; y < rows; y++)
+                for (int y = 0; y < height; y++)
                 {
-                    grid.Place(cols - 1, y, 6);
+                    grid.Place(width - 1, y, 6);
                 }
-                for (int x = 0; x < cols; x++)
+                for (int x = 0; x < width; x++)
                 {
-                    grid.Place(x, rows - 1, 6);
+                    grid.Place(x, height - 1, 6);
                 }
 
                 return grid;
@@ -119,15 +130,13 @@ namespace Game{
 
         };
 
-        template <size_t cols, size_t rows>
-        void Render(Grid<cols, rows> grid, std::array<Texture2D, Config::TILE_COUNT> &tile_textures)
+        void Render(Grid& grid, std::array<Texture2D, Config::TILE_COUNT>& tile_textures)
         {
-            for (unsigned int y = 0; y < rows; y++)
+            for (unsigned int y = 0; y < grid.size_y; y++)
             {
-                for (unsigned int x = 0; x < cols; x++)
+                for (unsigned int x = 0; x < grid.size_x; x++)
                 {
-                    const Tile tile = grid.GetTile(x, y);
-                    const Texture2D tile_texture = tile_textures.at(tile.type);
+                    const Texture2D tile_texture = tile_textures.at(grid.GetTile(x, y).type);
 
                     DrawTexture(tile_texture, x * Config::TILE_RESOLUTION, y * Config::TILE_RESOLUTION, WHITE);
                 }
@@ -234,7 +243,7 @@ namespace Game{
     Image tile_spritesheet;
     std::array<Texture2D, Config::TILE_COUNT> tile_textures;
 
-    auto grid = Level::Grid<Config::GRID_SIZE_X, Config::GRID_SIZE_Y>::NewDefault();
+    auto grid = Level::Grid::NewDefault();
 
     Player::State player = Player::State::New({0, 0});
     Texture2D player_texture;
@@ -348,7 +357,7 @@ namespace Game{
 
         BeginMode2D(camera.ToCamera2D());
 
-        Level::Render<Config::GRID_SIZE_X, Config::GRID_SIZE_Y>(grid, tile_textures);
+        Level::Render(grid, tile_textures);
         RenderTileGhost(tile_place_type, GetMouseGridPosition(state.input.mouse_position));
 
         Player::Render(player , player_texture);
