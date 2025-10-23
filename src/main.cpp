@@ -233,6 +233,14 @@ namespace Game{
 
     }
 
+    struct Assets{
+        Image tile_spritesheet;
+        std::array<Texture2D, Config::TILE_COUNT> tile_textures;
+
+        Texture2D player_texture;
+
+    };
+
     struct GameState{
         float delta_time;
         Input input;
@@ -241,16 +249,11 @@ namespace Game{
         Player::State player = Player::State::New({0, 0});
         Camera::State camera;
 
-    }; //TODO: Remove unnecessary passing of state instead of it's variables
+    }; //TODO: Remove unnecessary passing of state instead of its variables
 
     // NON-CONSTANTS
     GameState state{};
-    Image tile_spritesheet;
-    std::array<Texture2D, Config::TILE_COUNT> tile_textures;
-
-    Texture2D player_texture;
-
-
+    Assets assets{};
 
     // FUNCTIONS
 
@@ -295,10 +298,10 @@ namespace Game{
 
         }
 
-        tile_spritesheet = LoadImage("assets/tiles.png");
-        tile_textures = InitTileTextures<Config::TILE_COUNT>(tile_spritesheet, Config::TILE_RESOLUTION);
+        assets.tile_spritesheet = LoadImage("assets/tiles.png");
+        assets.tile_textures = InitTileTextures<Config::TILE_COUNT>(assets.tile_spritesheet, Config::TILE_RESOLUTION);
 
-        player_texture = LoadTexture("assets/player.png");
+        assets.player_texture = LoadTexture("assets/player.png");
 
     }
 
@@ -334,12 +337,12 @@ namespace Game{
     }
 
     void RenderTilePreview(unsigned int tile_type, Vector2 position){
-        Texture2D texture = tile_textures.at(tile_type);
+        Texture2D texture = assets.tile_textures.at(tile_type);
         DrawTextureEx(texture, position, 0, 6, {255, 255, 255, 100});
     }
 
     void RenderTileGhost(unsigned int tile_type, Vector2 position){
-        Texture2D texture = tile_textures.at(tile_type);
+        Texture2D texture = assets.tile_textures.at(tile_type);
 
         Rectangle rectangle{
             position.x * Config::TILE_RESOLUTION,
@@ -360,10 +363,10 @@ namespace Game{
         //START DRAWING
         BeginMode2D(state.camera.ToCamera2D());
 
-        Level::Render(state.grid, tile_textures);
+        Level::Render(state.grid, assets.tile_textures);
         RenderTileGhost(state.tile_place_type, GetMouseGridPosition(state.input.mouse_position, state.camera));
 
-        Player::Render(state.player , player_texture);
+        Player::Render(state.player , assets.player_texture);
 
         EndMode2D();
 
