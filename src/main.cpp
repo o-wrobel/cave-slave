@@ -20,7 +20,7 @@ namespace Game{
     struct Config {
         static constexpr unsigned int WINDOW_WIDTH = 800;
         static constexpr unsigned int WINDOW_HEIGHT = 600;
-        static constexpr unsigned int TARGET_FRAMERATE = 60;
+        static constexpr unsigned int TARGET_FRAMERATE = 0;
 
         static constexpr unsigned int TILE_RESOLUTION = 8;
         static constexpr unsigned int TILE_COUNT = 8;
@@ -291,7 +291,11 @@ namespace Game{
 
     void Init(){
         InitWindow(Config::WINDOW_WIDTH, Config::WINDOW_HEIGHT, "raylib basic window");
-        SetTargetFPS(Config::TARGET_FRAMERATE);
+        if (Config::TARGET_FRAMERATE != 0){
+            SetTargetFPS(Config::TARGET_FRAMERATE);
+
+        }
+
 
         tile_spritesheet = LoadImage("assets/tiles.png");
         tile_textures = InitTileTextures<Config::TILE_COUNT>(tile_spritesheet, Config::TILE_RESOLUTION);
