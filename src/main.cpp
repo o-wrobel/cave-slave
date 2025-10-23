@@ -25,7 +25,7 @@ namespace Game{
         static constexpr unsigned int TILE_COUNT = 8;
 
         static constexpr unsigned int GRID_SIZE_X = 64;
-        static constexpr unsigned int GRID_SIZE_Y = 20;
+        static constexpr unsigned int GRID_SIZE_Y = 64;
 
         static constexpr bool ZOOM_INTO_MOUSE = false;
 
@@ -303,6 +303,11 @@ namespace Game{
 
     }
 
+    void RenderTilePreview(unsigned int tile_type, Vector2 position){
+        Texture2D texture = tile_textures.at(tile_type);
+        DrawTextureEx(texture, position, 0, 6, {255, 255, 255, 100});
+    }
+
     void Render(){
         BeginDrawing();
         ClearBackground(BLACK);
@@ -315,6 +320,7 @@ namespace Game{
         EndMode2D();
 
         //Draw UI
+        RenderTilePreview(tile_place_type, {Config::WINDOW_WIDTH - 80, 30});
         DrawText("It works!", 32, 32, 32, WHITE);
         DrawFPS(60, 60);
 
