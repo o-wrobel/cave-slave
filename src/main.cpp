@@ -1,7 +1,7 @@
 #include <raylib.h>
-#include <array>
 #include <cmath>
 #include <algorithm>
+#include <string>
 #include <vector>
 
 
@@ -127,7 +127,7 @@ namespace Game{
 
         };
 
-        void Render(const Grid& grid, const std::array<Texture2D, Config::TILE_COUNT>& tile_textures){
+        void Render(const Grid& grid, const std::vector<Texture2D>& tile_textures){
             for (unsigned int y = 0; y < grid.size_y; y++)
             {
                 for (unsigned int x = 0; x < grid.size_x; x++)
@@ -138,7 +138,9 @@ namespace Game{
                 }
             }
         }
+
     }
+
 
     namespace Player {
         struct State {
@@ -183,7 +185,9 @@ namespace Game{
         void Render(const State& state, const Texture2D& texture){
             DrawTextureV(texture, state.position, WHITE);
         }
+
     }
+
 
     namespace Camera {
         struct State {
@@ -233,13 +237,15 @@ namespace Game{
 
     }
 
+
     struct Assets{
         Image tile_spritesheet;
-        std::array<Texture2D, Config::TILE_COUNT> tile_textures;
+        std::vector<Texture2D> tile_textures;
 
         Texture2D player_texture;
 
     };
+
 
     struct GameState{
         float delta_time;
@@ -252,6 +258,7 @@ namespace Game{
     }; //TODO: Remove unnecessary passing of state instead of its variables
 
     // NON-CONSTANTS
+
     GameState state{};
     Assets assets{};
 
@@ -263,15 +270,11 @@ namespace Game{
             std::floor(world_position.x / Config::TILE_RESOLUTION),
             std::floor(world_position.y / Config::TILE_RESOLUTION),
         };
+
     }
 
-
-    template <size_t tile_count>
-    std::array<Texture2D, tile_count> InitTileTextures(
-        const Image &spritesheet,
-        unsigned int tile_resolution)
-    {
-        std::array<Texture2D, tile_count> textures;
+    std::vector<Texture2D> GetTileTextures(const Image &spritesheet, unsigned int tile_resolution, unsigned int tile_type_count){
+        std::vector<Texture2D> textures(tile_type_count);
 
         Rectangle source_rect = {0.0f, 0.0f, (float)tile_resolution, (float)tile_resolution};
 
@@ -289,22 +292,29 @@ namespace Game{
         });
 
         return textures;
+
     }
 
-    void Init(){
+    void Init(
+        std::string name,
+        unsigned int window_width = Config::WINDOW_WIDTH,
+        unsigned int window_height = Config::WINDOW_HEIGHT,
+        unsigned int framerate = Config::TARGET_FRAMERATE,
+        unsigned int tile_resolution = Config::TILE_RESOLUTION,
+        const unsigned int tile_type_count = Config::TILE_COUNT
+    ){
         InitWindow(Config::WINDOW_WIDTH, Config::WINDOW_HEIGHT, "raylib basic window");
-        if (Config::TARGET_FRAMERATE != 0){
-            SetTargetFPS(Config::TARGET_FRAMERATE);
+        if (framerate != 0){
+            SetTargetFPS(framerate);
 
         }
 
         assets.tile_spritesheet = LoadImage("assets/tiles.png");
-        assets.tile_textures = InitTileTextures<Config::TILE_COUNT>(assets.tile_spritesheet, Config::TILE_RESOLUTION);
+        assets.tile_textures = GetTileTextures(assets.tile_spritesheet, tile_resolution, tile_type_count);
 
         assets.player_texture = LoadTexture("assets/player.png");
 
     }
-
 
     void UpdateTilePlacing(GameState& state){
         if (state.input.pressed.space){
@@ -339,6 +349,7 @@ namespace Game{
     void RenderTilePreview(unsigned int tile_type, Vector2 position){
         Texture2D texture = assets.tile_textures.at(tile_type);
         DrawTextureEx(texture, position, 0, 6, {255, 255, 255, 100});
+
     }
 
     void RenderTileGhost(unsigned int tile_type, Vector2 position){
@@ -376,10 +387,11 @@ namespace Game{
         DrawFPS(60, 60);
 
         EndDrawing();
+
     }
 
     void Game(){
-        Game::Init();
+        Game::Init("CaveSlave");
 
         while (!WindowShouldClose()){
             Update(state);
