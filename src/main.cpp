@@ -238,6 +238,17 @@ namespace Game{
     float delta_time;
 
     // FUNCTIONS
+
+    Vector2 GetMouseGridPosition(Vector2 mouse_position, unsigned int resolution = Config::TILE_RESOLUTION){
+        Vector2 world_position = GetScreenToWorld2D(mouse_position, camera.ToCamera2D());
+        return {
+            world_position.x / Config::TILE_RESOLUTION,
+            world_position.y / Config::TILE_RESOLUTION,
+        };
+
+    }
+
+
     template <size_t tile_count>
     std::array<Texture2D, tile_count> InitTileTextures(
         const Image &spritesheet,
@@ -274,6 +285,7 @@ namespace Game{
 
     }
 
+
     void UpdateTilePlacing(Input input){
         if (input.pressed.space){
             tile_place_type++;
@@ -282,11 +294,12 @@ namespace Game{
             }
         }
         if (input.held.lmb){
-            Vector2 mouse_grid_position = GetScreenToWorld2D(input.mouse_position, camera.ToCamera2D());
-            grid.Place(
-                floor(mouse_grid_position.x / Config::TILE_RESOLUTION),
-                floor(mouse_grid_position.y / Config::TILE_RESOLUTION),
-                tile_place_type);
+            auto mouse_grid_position = GetMouseGridPosition(input.mouse_position);
+            grid.Place(mouse_grid_position.x, mouse_grid_position.y, tile_place_type);
+        }
+        if (input.held.rmb){
+            auto mouse_grid_position = GetMouseGridPosition(input.mouse_position);
+            grid.Place(mouse_grid_position.x, mouse_grid_position.y, 0);
         }
 
     }
