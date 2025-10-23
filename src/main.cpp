@@ -71,10 +71,6 @@ namespace Game{
 
     };
 
-    struct GameState{
-        Input input;
-
-    };
 
     namespace Level {
         struct Tile {
@@ -102,9 +98,10 @@ namespace Game{
                 }
             }
 
-            Tile& GetTile(unsigned int x, unsigned int y){
+            Tile GetTile(unsigned int x, unsigned int y) const { //TODO: Maybe make this a reference idk
                 return tiles.at(y).at(x);
             }
+
 
             static Grid NewDefault(unsigned int width = Config::GRID_SIZE_X, unsigned int height = Config::GRID_SIZE_Y){
                 Grid grid(width, height);
@@ -130,8 +127,7 @@ namespace Game{
 
         };
 
-        void Render(Grid& grid, std::array<Texture2D, Config::TILE_COUNT>& tile_textures)
-        {
+        void Render(const Grid& grid, const std::array<Texture2D, Config::TILE_COUNT>& tile_textures){
             for (unsigned int y = 0; y < grid.size_y; y++)
             {
                 for (unsigned int x = 0; x < grid.size_x; x++)
@@ -237,25 +233,28 @@ namespace Game{
 
     }
 
+    struct GameState{
+        float delta_time;
+        Input input;
+        unsigned int tile_place_type = 1;
+        Level::Grid grid = Level::Grid::NewDefault();
+        Player::State player = Player::State::New({0, 0});
+        Camera::State camera;
+
+    }; //TODO: Remove unnecessary passing of state instead of it's variables
+
     // NON-CONSTANTS
-    //
     GameState state{};
     Image tile_spritesheet;
     std::array<Texture2D, Config::TILE_COUNT> tile_textures;
 
-    auto grid = Level::Grid::NewDefault();
-
-    Player::State player = Player::State::New({0, 0});
     Texture2D player_texture;
 
-    Camera::State camera;
-    unsigned int tile_place_type = 1;
 
-    float delta_time;
 
     // FUNCTIONS
 
-    Vector2 GetMouseGridPosition(Vector2 mouse_position, unsigned int resolution = Config::TILE_RESOLUTION){
+    Vector2 GetMouseGridPosition(Vector2 mouse_position, const Camera::State& camera, unsigned int resolution = Config::TILE_RESOLUTION){
         Vector2 world_position = GetScreenToWorld2D(mouse_position, camera.ToCamera2D());
         return {
             std::floor(world_position.x / Config::TILE_RESOLUTION),
@@ -296,7 +295,6 @@ namespace Game{
 
         }
 
-
         tile_spritesheet = LoadImage("assets/tiles.png");
         tile_textures = InitTileTextures<Config::TILE_COUNT>(tile_spritesheet, Config::TILE_RESOLUTION);
 
@@ -305,33 +303,33 @@ namespace Game{
     }
 
 
-    void UpdateTilePlacing(Input input){
-        if (input.pressed.space){
-            tile_place_type++;
-            if (tile_place_type >= Config::TILE_COUNT){
-                tile_place_type = 0;
+    void UpdateTilePlacing(GameState& state){
+        if (state.input.pressed.space){
+            state.tile_place_type++;
+            if (state.tile_place_type >= Config::TILE_COUNT){
+                state.tile_place_type = 0;
             }
         }
-        if (input.held.lmb){
-            auto mouse_grid_position = GetMouseGridPosition(input.mouse_position);
-            grid.Place(mouse_grid_position.x, mouse_grid_position.y, tile_place_type);
+        if (state.input.held.lmb){
+            auto mouse_grid_position = GetMouseGridPosition(state.input.mouse_position, state.camera);
+            state.grid.Place(mouse_grid_position.x, mouse_grid_position.y, state.tile_place_type);
         }
-        if (input.held.rmb){
-            auto mouse_grid_position = GetMouseGridPosition(input.mouse_position);
-            grid.Place(mouse_grid_position.x, mouse_grid_position.y, 0);
+        if (state.input.held.rmb){
+            auto mouse_grid_position = GetMouseGridPosition(state.input.mouse_position, state.camera);
+            state.grid.Place(mouse_grid_position.x, mouse_grid_position.y, 0);
         }
 
     }
 
     void Update(GameState& state){
-        delta_time = GetFrameTime();
+        state.delta_time = GetFrameTime();
         state.input = Input::Capture();
 
-        UpdateTilePlacing(state.input);
+        UpdateTilePlacing(state);
 
-        player.Update(state.input, delta_time);
+        state.player.Update(state.input, state.delta_time);
 
-        camera.Update(player.GetCenter(), state.input.mouse_wheel, Config::WINDOW_WIDTH, Config::WINDOW_HEIGHT);
+        state.camera.Update(state.player.GetCenter(), state.input.mouse_wheel, Config::WINDOW_WIDTH, Config::WINDOW_HEIGHT);
 
     }
 
@@ -359,17 +357,18 @@ namespace Game{
         BeginDrawing();
         ClearBackground(BLACK);
 
-        BeginMode2D(camera.ToCamera2D());
+        //START DRAWING
+        BeginMode2D(state.camera.ToCamera2D());
 
-        Level::Render(grid, tile_textures);
-        RenderTileGhost(tile_place_type, GetMouseGridPosition(state.input.mouse_position));
+        Level::Render(state.grid, tile_textures);
+        RenderTileGhost(state.tile_place_type, GetMouseGridPosition(state.input.mouse_position, state.camera));
 
-        Player::Render(player , player_texture);
+        Player::Render(state.player , player_texture);
 
         EndMode2D();
 
         //Draw UI
-        RenderTilePreview(tile_place_type, {Config::WINDOW_WIDTH - 80, 30});
+        RenderTilePreview(state.tile_place_type, {Config::WINDOW_WIDTH - 80, 30});
         DrawText("It works!", 32, 32, 32, WHITE);
         DrawFPS(60, 60);
 
