@@ -40,6 +40,7 @@ namespace Game{
         };
 
         struct Held{
+            bool ctrl;
             bool right, left, up, down, space;
             bool lmb, rmb;
         };
@@ -56,13 +57,14 @@ namespace Game{
                 GetMouseWheelMove(),
 
                 Held{
-                    IsKeyDown(KEY_D),
-                    IsKeyDown(KEY_A),
-                    IsKeyDown(KEY_W),
-                    IsKeyDown(KEY_S),
-                    IsKeyDown(KEY_SPACE),
-                    IsMouseButtonDown(0),
-                    IsMouseButtonDown(1)
+                    .ctrl = IsKeyDown(KEY_LEFT_CONTROL),
+                    .right = IsKeyDown(KEY_D),
+                    .left = IsKeyDown(KEY_A),
+                    .up = IsKeyDown(KEY_W),
+                    .down = IsKeyDown(KEY_S),
+                    .space = IsKeyDown(KEY_SPACE),
+                    .lmb = IsMouseButtonDown(0),
+                    .rmb = IsMouseButtonDown(1)
                 },
 
                 Pressed{IsKeyPressed(KEY_SPACE)}
@@ -200,9 +202,9 @@ namespace Game{
                 return {offset, target, rotation, zoom};
             }
 
-            void SetZoom(float mouse_wheel_input){
+            void UpdateZoom(float mouse_wheel_input, bool ctrl_held){
 
-                    if (mouse_wheel_input != 0){
+                    if (mouse_wheel_input != 0 && ctrl_held){
                         // Get the world point that is under the mouse
                         Vector2 mouseWorldPos = GetScreenToWorld2D(GetMousePosition(), ToCamera2D());
 
@@ -224,14 +226,14 @@ namespace Game{
                     }
             }
 
-            void FollowPlayer(Vector2 player_center, float window_width, float window_height){
+            void UpdatePosition(Vector2 player_center, float window_width, float window_height){
                 target = player_center;
                 offset = {window_width / 2, window_height / 2};
             }
 
-            void Update(Vector2 player_center, float mouse_wheel_input, float window_width, float window_height){
-                FollowPlayer(player_center, window_width, window_height);
-                SetZoom(mouse_wheel_input);
+            void Update(Vector2 player_center, Input input, float window_width = Config::WINDOW_WIDTH, float window_height = Config::WINDOW_HEIGHT){
+                UpdatePosition(player_center, window_width, window_height);
+                UpdateZoom(input.mouse_wheel, input.held.ctrl);
             }
         };
 
@@ -342,7 +344,7 @@ namespace Game{
 
         state.player.Update(state.input, state.delta_time);
 
-        state.camera.Update(state.player.GetCenter(), state.input.mouse_wheel, Config::WINDOW_WIDTH, Config::WINDOW_HEIGHT);
+        state.camera.Update(state.player.GetCenter(), state.input);
 
     }
 
