@@ -39,14 +39,14 @@ namespace Game{
         };
 
         struct Held{
-            const bool right, left, up, down, space;
-            const bool lmb, rmb;
+            bool right, left, up, down, space;
+            bool lmb, rmb;
         };
 
-        const Vector2 mouse_position;
-        const float mouse_wheel;
-        const Held held;
-        const Pressed pressed;
+        Vector2 mouse_position;
+        float mouse_wheel;
+        Held held;
+        Pressed pressed;
 
         static Input Capture()
         {
@@ -67,6 +67,11 @@ namespace Game{
                 Pressed{IsKeyPressed(KEY_SPACE)}
             };
         }
+
+    };
+
+    struct GameState{
+        Input input;
 
     };
 
@@ -224,6 +229,8 @@ namespace Game{
     }
 
     // NON-CONSTANTS
+    //
+    GameState state{};
     Image tile_spritesheet;
     std::array<Texture2D, Config::TILE_COUNT> tile_textures;
 
@@ -242,10 +249,9 @@ namespace Game{
     Vector2 GetMouseGridPosition(Vector2 mouse_position, unsigned int resolution = Config::TILE_RESOLUTION){
         Vector2 world_position = GetScreenToWorld2D(mouse_position, camera.ToCamera2D());
         return {
-            world_position.x / Config::TILE_RESOLUTION,
-            world_position.y / Config::TILE_RESOLUTION,
+            std::floor(world_position.x / Config::TILE_RESOLUTION),
+            std::floor(world_position.y / Config::TILE_RESOLUTION),
         };
-
     }
 
 
@@ -304,15 +310,15 @@ namespace Game{
 
     }
 
-    void Update(){
+    void Update(GameState& state){
         delta_time = GetFrameTime();
-        const Input input = Input::Capture();
+        state.input = Input::Capture();
 
-        UpdateTilePlacing(input);
+        UpdateTilePlacing(state.input);
 
-        player.Update(input, delta_time);
+        player.Update(state.input, delta_time);
 
-        camera.Update(player.GetCenter(), input.mouse_wheel, Config::WINDOW_WIDTH, Config::WINDOW_HEIGHT);
+        camera.Update(player.GetCenter(), state.input.mouse_wheel, Config::WINDOW_WIDTH, Config::WINDOW_HEIGHT);
 
     }
 
@@ -321,13 +327,30 @@ namespace Game{
         DrawTextureEx(texture, position, 0, 6, {255, 255, 255, 100});
     }
 
-    void Render(){
+    void RenderTileGhost(unsigned int tile_type, Vector2 position){
+        Texture2D texture = tile_textures.at(tile_type);
+
+        Rectangle rectangle{
+            position.x * Config::TILE_RESOLUTION,
+            position.y * Config::TILE_RESOLUTION,
+            Config::TILE_RESOLUTION,
+            Config::TILE_RESOLUTION
+        };
+        DrawRectangleRec(rectangle, {0, 0, 0, 130});
+        DrawTextureV(texture, {rectangle.x, rectangle.y}, {255, 255, 255, 130});
+        DrawRectangleLinesEx(rectangle, 1, {255, 255, 255, 130});
+
+    }
+
+    void Render(const GameState& state){
         BeginDrawing();
         ClearBackground(BLACK);
 
         BeginMode2D(camera.ToCamera2D());
 
         Level::Render<Config::GRID_SIZE_X, Config::GRID_SIZE_Y>(grid, tile_textures);
+        RenderTileGhost(tile_place_type, GetMouseGridPosition(state.input.mouse_position));
+
         Player::Render(player , player_texture);
 
         EndMode2D();
@@ -340,16 +363,21 @@ namespace Game{
         EndDrawing();
     }
 
+    void Game(){
+        Game::Init();
+
+        while (!WindowShouldClose()){
+            Update(state);
+            Render(state);
+        }
+        CloseWindow();
+
+    }
+
 }
 
 
 int main(){
-    Game::Init();
-
-    while (!WindowShouldClose()){
-        Game::Update();
-        Game::Render();
-    }
-    CloseWindow();
+    Game::Game();
     return 0;
 }
