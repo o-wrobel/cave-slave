@@ -1,3 +1,5 @@
+#include "game.h"
+
 #include <raylib.h>
 #include <cmath>
 #include <algorithm>
