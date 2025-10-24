@@ -321,10 +321,18 @@ namespace Game{
     void UpdateTilePlacing(GameState& state){
         if (state.input.pressed.space){
             state.tile_place_type++;
-            if (state.tile_place_type >= Config::TILE_COUNT){
-                state.tile_place_type = 0;
-            }
         }
+
+        if (state.input.mouse_wheel && !state.input.held.ctrl){
+            state.tile_place_type += state.input.mouse_wheel;
+        }
+
+        if (state.tile_place_type >= Config::TILE_COUNT){
+            state.tile_place_type = 1;
+        } else if (state.tile_place_type == 0){
+            state.tile_place_type = Config::TILE_COUNT - 1;
+        }
+
         if (state.input.held.lmb){
             auto mouse_grid_position = GetMouseGridPosition(state.input.mouse_position, state.camera);
             state.grid.Place(mouse_grid_position.x, mouse_grid_position.y, state.tile_place_type);
