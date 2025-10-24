@@ -13,7 +13,7 @@ OBJECTS = $(patsubst %.cpp,%.o,$(SRC_FILES))
 
 WINDOWS_FLAGS = -lraylib -lopengl32 -lgdi32 -lwinmm
 LINUX_FLAGS = -lraylib  -lGL -lm -lpthread
-CFLAGS = $(LINUX_FLAGS) -Weffc++
+CFLAGS = -Weffc++ -std=c++20
 
 
 all: $(BINARY)
@@ -21,10 +21,10 @@ all: $(BINARY)
 	rm -rf $(OBJECTS)
 
 $(BINARY): $(OBJECTS)
-	$(CC) -o $@ $^ $(CFLAGS) $(INCLUDE) $(LIB)
+	$(CC) -o $@ $^ $(LINUX_FLAGS) $(INCLUDE) $(LIB)
 
 %.o: src/%.cpp
-	$(CC) -c -o $@ $^ $(INCLUDE)
+	$(CC) -c -o $@ $^ $(INCLUDE) $(CFLAGS)
 
 run: $(BINARY)
 	./$(BINARY)
