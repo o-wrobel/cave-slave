@@ -1,5 +1,7 @@
 #pragma once
 
+#include "grid.h"
+
 #include <raylib.h>
 #include <string>
 #include <vector>
@@ -42,24 +44,6 @@ struct Input {
 
 };
 
-struct Tile {
-    unsigned int type;
-};
-
-struct Grid{
-    const unsigned int size_x;
-    const unsigned int size_y;
-
-    std::vector<std::vector<Tile>> tiles;
-
-    Grid(size_t width, size_t height);
-
-    void Place(unsigned int x, unsigned int y, unsigned int type);
-
-    Tile GetTile(unsigned int x, unsigned int y) const; //TODO: Maybe make this a reference idk
-
-    static Grid NewDefault(unsigned int width = Config::GRID_SIZE_X, unsigned int height = Config::GRID_SIZE_Y);
-};
 
 struct PlayerState {
     Vector2 position;
@@ -110,7 +94,7 @@ struct GameState{
     float delta_time;
     Input input;
     unsigned int tile_place_type = 1;
-    Grid grid = Grid::NewDefault();
+    Grid grid = Grid::NewDefault(Config::GRID_SIZE_X, Config::GRID_SIZE_Y);
     PlayerState player = PlayerState::New({0, 0});
     CameraState camera;
 
