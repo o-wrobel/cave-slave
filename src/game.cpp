@@ -2,6 +2,7 @@
 #include "grid.h"
 
 #include <raylib.h>
+#include <iostream>
 #include <string>
 #include <algorithm>
 #include <cmath>
@@ -26,12 +27,16 @@ Input Input::Capture()
             .rmb = IsMouseButtonDown(1)
         },
 
-        Input::Pressed{IsKeyPressed(KEY_SPACE)}
+        Input::Pressed{
+            IsKeyPressed(KEY_SPACE),
+            IsKeyPressed(KEY_F5),
+            IsKeyPressed(KEY_F6)
+        }
     };
 }
 
 
-// PLAYER
+//PLAYER
     void PlayerState::MoveBy(Vector2 offset) {
         Vector2 new_position = {position.x + offset.x, position.y + offset.y};
         position.x += offset.x;
@@ -192,10 +197,32 @@ Input Input::Capture()
 
     }
 
+    void UpdateLevel(const Input& input, Grid& grid){
+        if (input.pressed.f5){
+            std::cout << std::endl <<"LOADING LEVEL: Enter a level name: ";
+            std::string level_name;
+            std::cin >> level_name;
+            auto new_grid = Grid::LoadFromFile(level_name);
+            if (new_grid.has_value()){
+                grid = new_grid.value();
+            }
+        } else if (input.pressed.f6){
+            std::cout << std::endl <<"SAVING LEVEL: Enter a level name (null for none): ";
+            std::string level_name;
+            std::cin >> level_name;
+            if (level_name.empty()){
+                std::cout << std::endl << "Level not saved.";
+            } else {
+                grid.SaveToFile(level_name);
+            }
+        }
+    }
+
     void Update(GameState& state){
         state.delta_time = GetFrameTime();
         state.input = Input::Capture();
 
+        UpdateLevel(state.input, state.grid);
         UpdateTilePlacing(state);
 
         state.player.Update(state.input, state.delta_time);

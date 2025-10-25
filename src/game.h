@@ -27,6 +27,8 @@ struct Config {
 struct Input {
     struct Pressed{
         bool space;
+        bool f5;
+        bool f6;
     };
 
     struct Held{
@@ -119,6 +121,8 @@ Assets InitAssets(
 );
 
 void UpdateTilePlacing(GameState& state);
+
+void UpdateLevel(const Input& input, Grid& grid);
 
 void Update(GameState& state);
 

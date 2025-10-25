@@ -1,5 +1,10 @@
 #include "grid.h"
+
+#include <fstream>
+#include <iostream>
+#include <nlohmann/json.hpp>
 #include <vector>
+
 
 Grid::Grid(size_t width, size_t height) :
     size_x(width),
@@ -14,10 +19,12 @@ void Grid::Place(unsigned int x, unsigned int y, unsigned int type){
         tiles.at(y).at(x).type = type;
 
     }
+
 }
 
 Tile Grid::GetTile(unsigned int x, unsigned int y) const { //TODO: Maybe make this a reference idk
     return tiles.at(y).at(x);
+
 }
 
 
@@ -41,4 +48,58 @@ Grid Grid::NewDefault(unsigned int width, unsigned int height){
     }
 
     return grid;
+
+}
+
+void Grid::SaveToFile(std::string filename){
+    using Json = nlohmann::json;
+
+    std::ofstream file("levels/" + filename + ".json");
+
+    Json level_data;
+    level_data["width"] = size_x;
+    level_data["height"] = size_y;
+
+    std::vector<std::vector<unsigned int>> tiles_data;
+    for (const auto& row : tiles){
+        std::vector<unsigned int> type_row;
+        for (const auto& tile : row){
+            type_row.push_back(tile.type);
+        }
+        tiles_data.push_back(type_row);
+    }
+    level_data["tiles"] = tiles_data;
+
+    std::string json_string = level_data.dump(4); //TODO: make this cleaner somehow, whole file is 4000+ lines long
+
+    if (file.is_open()){
+        file << json_string;
+        file.close();
+    }
+
+}
+
+std::optional<Grid> Grid::LoadFromFile(std::string filename){
+    try {
+    using Json = nlohmann::json;
+
+    std::ifstream file("levels/" + filename + ".json");
+
+    Json level_data;
+    file >> level_data;
+
+    Grid return_grid(level_data["width"], level_data["height"]);
+
+    std::vector<std::vector<unsigned int>> tiles_data = level_data["tiles"];
+    for (int y = 0; y < return_grid.size_y; y++){
+        for (int x = 0; x < return_grid.size_x; x++){
+            return_grid.tiles[y][x].type = tiles_data[y][x];
+        }
+    }
+
+    return return_grid;
+    } catch (const std::exception& e) {
+        std::cout << "Error loading grid from file: " << e.what() << std::endl;
+        return std::nullopt;
+    }
 }
