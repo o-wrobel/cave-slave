@@ -1,81 +1,31 @@
 #pragma once
 
-#include "grid.h"
+#include "model.h"
 #include "input.h"
+#include "grid.h"
 #include "camera.h"
+#include "player.h"
 
+#include <cstdint>
 #include <raylib.h>
+#include <stdint.h>
 #include <string>
 #include <vector>
 
 namespace Game{
 
 struct Config {
-    static constexpr unsigned int WINDOW_WIDTH = 800;
-    static constexpr unsigned int WINDOW_HEIGHT = 600;
-    static constexpr unsigned int TARGET_FRAMERATE = 0;
+    static constexpr uint16_t WINDOW_WIDTH = 800;
+    static constexpr uint16_t WINDOW_HEIGHT = 600;
+    static constexpr uint16_t TARGET_FRAMERATE = 0;
 
-    static constexpr unsigned int TILE_RESOLUTION = 8;
-    static constexpr unsigned int TILE_COUNT = 8;
+    static constexpr uint16_t TILE_RESOLUTION = 8;
+    static constexpr uint16_t TILE_COUNT = 8;
 
-    static constexpr unsigned int GRID_SIZE_X = 64;
-    static constexpr unsigned int GRID_SIZE_Y = 64;
-
-    static constexpr unsigned int TILE_SIZE = TILE_RESOLUTION * TILE_COUNT;
+    static constexpr uint16_t GRID_SIZE_X = 64;
+    static constexpr uint16_t GRID_SIZE_Y = 64;
 
     static constexpr float GRAVITY = 800;
-};
-typedef enum Direction{
-    RIGHT = 1,
-    LEFT = -1
-} Direction;
-
-enum GameMode{
-    EDITOR,
-    PLAY
-};
-
-typedef struct Sprite {
-    Texture2D texture;
-    Rectangle dest_rect;
-    Direction direction = RIGHT;
-
-    void Draw() const;
-
-} Sprite;
-
-
-struct Player{
-    Sprite sprite;
-    Vector2 size;
-    Vector2 velocity;
-    float speed_factor;
-
-    void Move(float horizontal, bool space_held);
-
-    void FreeMove(float horizontal, float vertical);
-
-    void ApplyVelocity(float delta_time);
-
-    void ApplyGravity(float delta_time);
-
-    Vector2 GetCenter() const;
-
-    static Player New(
-        Texture2D texture,
-        Vector2 size = {8.0f, 8.0f},
-        float move_speed = 400.0f
-    );
-
-    void Update(GameMode game_type, const Input& input, float delta_time);
-};
-
-struct Assets{
-    Image tile_spritesheet;
-    std::vector<Texture2D> tile_textures;
-
-    Texture2D player_texture;
-
 };
 
 struct GameState{
@@ -90,7 +40,7 @@ struct GameState{
     Sprite player_sprite;
     CenteredCamera camera;
 
-}; //TODO: Remove unnecessary passing of state instead of its variables
+};
 
 //FUNCTIONS
 Vector2 GetMouseGridPosition(
