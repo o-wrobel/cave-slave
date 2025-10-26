@@ -28,9 +28,12 @@ Input Input::Capture()
         },
 
         Input::Pressed{
-            IsKeyPressed(KEY_SPACE),
-            IsKeyPressed(KEY_F5),
-            IsKeyPressed(KEY_F6)
+            .space = IsKeyPressed(KEY_SPACE),
+            .escape = IsKeyPressed(KEY_ESCAPE),
+            .y = IsKeyPressed(KEY_Y),
+            .n = IsKeyPressed(KEY_N),
+            .f5 = IsKeyPressed(KEY_F5),
+            .f6 = IsKeyPressed(KEY_F6)
         }
     };
 }
@@ -152,10 +155,11 @@ Input Input::Capture()
         unsigned int framerate
     ){
         InitWindow(window_width, window_height, name.c_str());
+        SetExitKey(KEY_NULL);
         if (framerate != 0){
             SetTargetFPS(framerate);
-
         }
+
     }
 
     Assets InitAssets(unsigned int tile_resolution, unsigned int tile_type_count){
@@ -222,6 +226,19 @@ Input Input::Capture()
         state.delta_time = GetFrameTime();
         state.input = Input::Capture();
 
+        if (WindowShouldClose() || state.input.pressed.escape) {
+            state.exit_requested = true;
+        }
+
+        if (state.exit_requested){
+            if (state.input.pressed.y){
+                state.exiting = true;
+            }
+            if (state.input.pressed.n){
+                state.exit_requested = false;
+            }
+        }
+
         UpdateLevel(state.input, state.grid);
         UpdateTilePlacing(state);
 
@@ -278,6 +295,12 @@ Input Input::Capture()
 
     }
 
+    void RenderExitScreen(const GameState& state, const Assets& assets){
+        DrawRectangle(0 , 0, Config::WINDOW_WIDTH, Config::WINDOW_HEIGHT, {0, 0, 0, 130});
+        DrawText("Exit game? [y/n]", 0.5 * (Config::WINDOW_WIDTH - MeasureText("Exit game? [y/n]", 32)), 32, 32, WHITE);
+
+    }
+
     void Render(const GameState& state, const Assets& assets){
         BeginDrawing();
         ClearBackground(BLACK);
@@ -299,27 +322,34 @@ Input Input::Capture()
 
         //Draw UI
         RenderTilePreview(state.tile_place_type, {Config::WINDOW_WIDTH - 80, 30}, assets.tile_textures);
-        DrawText("It works!", 32, 32, 32, WHITE);
+        DrawText("CaveSlave", 32, 32, 32, WHITE);
         DrawFPS(60, 60);
+
+        if (state.exit_requested){
+            RenderExitScreen(state, assets);
+        }
 
         EndDrawing();
 
     }
 
-    void Run(){
-        Init("CaveSlave"); //Has to be first to be called
+void Run(){
+    Init("CaveSlave"); //Has to be first to be called
 
-        auto assets = InitAssets();
-        GameState state{};
+    auto assets = InitAssets();
+    GameState state{};
 
-        while (!WindowShouldClose()){
-            Update(state);
-            Render(state, assets);
+    while (true){
+        Update(state);
+        Render(state, assets);
+        if (state.exiting){
+            break;
         }
-
-        CloseWindow();
-
     }
+
+    CloseWindow();
+
+}
 
 
 } // namespace Game

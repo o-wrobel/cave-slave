@@ -27,6 +27,9 @@ struct Config {
 struct Input {
     struct Pressed{
         bool space;
+        bool escape;
+        bool y;
+        bool n;
         bool f5;
         bool f6;
     };
@@ -95,8 +98,10 @@ struct Assets{
 struct GameState{
     float delta_time;
     Input input;
-    unsigned int tile_place_type = 1;
+    bool exit_requested = false;
+    bool exiting = false;
     Grid grid = Grid::NewDefault(Config::GRID_SIZE_X, Config::GRID_SIZE_Y);
+    unsigned int tile_place_type = 1;
     PlayerState player = PlayerState::New({0, 0});
     CameraState camera;
 
