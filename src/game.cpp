@@ -78,25 +78,28 @@ Input Input::Capture()
 
 
 //CAMERA
-    Camera2D CameraState::ToCamera2D() const {
-        return {offset, target, rotation, zoom};
+    Camera2D CenteredCamera::GetCamera2D(unsigned int window_width, unsigned int window_height) const {
+        return {
+            {(float)window_width / 2, (float)window_height / 2},
+            center,
+            rotation,
+            zoom
+        };
     }
 
-    void CameraState::UpdateZoom(float mouse_wheel_input, bool ctrl_held){
+    Rectangle CenteredCamera::GetBounds(unsigned int window_width, unsigned int window_height) const {
+        float half_width = window_width / (2 * zoom);
+        float half_height = window_height / (2 * zoom);
+        return {
+            center.x - half_width,
+            center.y - half_height,
+            half_width * 2,
+            half_height * 2
+        };
+    }
+
+    void CenteredCamera::UpdateZoom(float mouse_wheel_input, bool ctrl_held, unsigned int window_width, unsigned int window_height){
         if (mouse_wheel_input != 0 && ctrl_held){
-            // Get the world point that is under the mouse
-            Vector2 mouseWorldPos = GetScreenToWorld2D(GetMousePosition(), ToCamera2D());
-
-            if (Config::ZOOM_INTO_MOUSE){
-                // Set the offset to where the mouse is
-                offset = GetMousePosition();
-
-                // Set the target to match, so that the camera maps the world space point
-                // under the cursor to the screen space point under the cursor at any zoom
-                target = mouseWorldPos;
-
-            }
-
             // Zoom increment
             // Uses log scaling to provide consistent zoom speed
             float scale = 0.2f * mouse_wheel_input;
@@ -105,20 +108,25 @@ Input Input::Capture()
         }
     }
 
-    void CameraState::UpdatePosition(Vector2 player_center, float window_width, float window_height){
-        target = player_center;
-        offset = {window_width / 2, window_height / 2};
+    void CenteredCamera::UpdatePosition(Vector2 player_center, float window_width, float window_height){
+        center = player_center;
     }
 
-    void CameraState::Update(Vector2 player_center, Input input, float window_width, float window_height){
+    void CenteredCamera::Update(Vector2 player_center, Input input, float window_width, float window_height){
         UpdatePosition(player_center, window_width, window_height);
-        UpdateZoom(input.mouse_wheel, input.held.ctrl);
+        UpdateZoom(input.mouse_wheel, input.held.ctrl, window_width, window_height);
     }
 
 
 //FUNCTIONS
-    Vector2 GetMouseGridPosition(Vector2 mouse_position, const CameraState& camera, unsigned int tile_resolution){
-        Vector2 world_position = GetScreenToWorld2D(mouse_position, camera.ToCamera2D());
+    Vector2 GetMouseGridPosition(
+        Vector2 mouse_position,
+        const CenteredCamera& camera,
+        unsigned int tile_resolution,
+        unsigned int window_width,
+        unsigned int window_height
+    ){
+        Vector2 world_position = GetScreenToWorld2D(mouse_position, camera.GetCamera2D(window_width, window_height));
         return {
             std::floor(world_position.x / tile_resolution),
             std::floor(world_position.y / tile_resolution),
@@ -156,6 +164,7 @@ Input Input::Capture()
     ){
         InitWindow(window_width, window_height, name.c_str());
         SetExitKey(KEY_NULL);
+        IsWindowResized();
         if (framerate != 0){
             SetTargetFPS(framerate);
         }
@@ -191,11 +200,11 @@ Input Input::Capture()
         }
 
         if (state.input.held.lmb){
-            auto mouse_grid_position = GetMouseGridPosition(state.input.mouse_position, state.camera);
+            auto mouse_grid_position = GetMouseGridPosition(state.input.mouse_position, state.camera, Config::TILE_RESOLUTION, Config::WINDOW_WIDTH, Config::WINDOW_HEIGHT);
             state.grid.Place(mouse_grid_position.x, mouse_grid_position.y, state.tile_place_type);
         }
         if (state.input.held.rmb){
-            auto mouse_grid_position = GetMouseGridPosition(state.input.mouse_position, state.camera);
+            auto mouse_grid_position = GetMouseGridPosition(state.input.mouse_position, state.camera, Config::TILE_RESOLUTION, Config::WINDOW_WIDTH, Config::WINDOW_HEIGHT);
             state.grid.Place(mouse_grid_position.x, mouse_grid_position.y, 0);
         }
 
@@ -250,10 +259,20 @@ Input Input::Capture()
 
 
 //RENDER
-    void RenderGrid(const Grid& grid, const std::vector<Texture2D>& tile_textures, unsigned int tile_resolution){
-        for (unsigned int y = 0; y < grid.size_y; y++)
+    void RenderGrid(const Grid& grid, const std::vector<Texture2D>& tile_textures, Rectangle bounds, unsigned int tile_resolution){
+        int start_x = bounds.x / tile_resolution;
+        int start_y = bounds.y / tile_resolution;
+        int end_x = (bounds.x + bounds.width) / tile_resolution + 1;
+        int end_y = (bounds.y + bounds.height) / tile_resolution + 1;
+
+        start_x = std::max(0, start_x);
+        start_y = std::max(0, start_y);
+        end_x = std::min((int)grid.size_x, end_x);
+        end_y = std::min((int)grid.size_y, end_y);;
+
+        for (int y = start_y; y < end_y; y++)
         {
-            for (unsigned int x = 0; x < grid.size_x; x++)
+            for (unsigned int x = start_x; x < end_x; x++)
             {
                 const Texture2D& tile_texture = tile_textures.at(grid.GetTile(x, y).type);
 
@@ -306,9 +325,9 @@ Input Input::Capture()
         ClearBackground(BLACK);
 
         //START DRAWING
-        BeginMode2D(state.camera.ToCamera2D());
+        BeginMode2D(state.camera.GetCamera2D(Config::WINDOW_WIDTH, Config::WINDOW_HEIGHT));
 
-        RenderGrid(state.grid,  assets.tile_textures, Config::TILE_RESOLUTION);
+        RenderGrid(state.grid,  assets.tile_textures, state.camera.GetBounds(Config::WINDOW_WIDTH, Config::WINDOW_HEIGHT), Config::TILE_RESOLUTION);
         RenderTileGhost(
             state.tile_place_type,
             GetMouseGridPosition(state.input.mouse_position, state.camera),
@@ -338,12 +357,13 @@ void Run(){
 
     auto assets = InitAssets();
     GameState state{};
-
-    while (true){
-        Update(state);
-        Render(state, assets);
-        if (state.exiting){
-            break;
+    if (IsWindowReady()){
+        while (true){
+            Update(state);
+            Render(state, assets);
+            if (state.exiting){
+                break;
+            }
         }
     }
 

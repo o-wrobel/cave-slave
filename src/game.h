@@ -19,8 +19,6 @@ struct Config {
     static constexpr unsigned int GRID_SIZE_X = 64;
     static constexpr unsigned int GRID_SIZE_Y = 64;
 
-    static constexpr bool ZOOM_INTO_MOUSE = false;
-
     static constexpr unsigned int TILE_SIZE = TILE_RESOLUTION * TILE_COUNT;
 };
 
@@ -68,15 +66,18 @@ struct PlayerState {
 };
 
 //CAMERA
-struct CameraState {
+struct CenteredCamera {
+    Vector2 center = {0., 0.};
     Vector2 offset = {0., 0.};
     Vector2 target = {0., 0.};
     float rotation = 0.;
     float zoom = 2.;
 
-    Camera2D ToCamera2D() const;
+    Camera2D GetCamera2D(unsigned int window_width, unsigned int window_height) const;
 
-    void UpdateZoom(float mouse_wheel_input, bool ctrl_held);
+    Rectangle GetBounds(unsigned int window_width, unsigned int window_height) const;
+
+    void UpdateZoom(float mouse_wheel_input, bool ctrl_held, unsigned int window_width, unsigned int window_height);
 
     void UpdatePosition(Vector2 player_center, float window_width, float window_height);
 
@@ -103,13 +104,18 @@ struct GameState{
     Grid grid = Grid::NewDefault(Config::GRID_SIZE_X, Config::GRID_SIZE_Y);
     unsigned int tile_place_type = 1;
     PlayerState player = PlayerState::New({0, 0});
-    CameraState camera;
+    CenteredCamera camera;
 
 }; //TODO: Remove unnecessary passing of state instead of its variables
 
 //FUNCTIONS
-Vector2 GetMouseGridPosition(Vector2 mouse_position, const CameraState& camera, unsigned int resolution = Config::TILE_RESOLUTION);
-
+Vector2 GetMouseGridPosition(
+    Vector2 mouse_position,
+    const CenteredCamera& camera,
+    unsigned int resolution = Config::TILE_RESOLUTION,
+    unsigned int window_width = Config::WINDOW_WIDTH,
+    unsigned int window_height = Config::WINDOW_HEIGHT
+);
 
 std::vector<Texture2D> GetTileTextures(const Image &spritesheet, unsigned int tile_resolution, unsigned int tile_type_count);
 
@@ -131,7 +137,7 @@ void UpdateLevel(const Input& input, Grid& grid);
 
 void Update(GameState& state);
 
-void RenderGrid(const GameState& state, const Assets& assets, unsigned int tile_resolution);
+void RenderGrid(const GameState& state, const Assets& assets, Rectangle bounds, unsigned int tile_resolution);
 
 void RenderTilePreview(unsigned int tile_type, Vector2 position, std::vector<Texture2D>& tile_textures);
 
