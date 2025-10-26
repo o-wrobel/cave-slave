@@ -1,7 +1,6 @@
 #pragma once
 
 #include "model.h"
-#include "input.h"
 
 #include <raylib.h>
 #include <cstdint>

@@ -1,7 +1,6 @@
 #pragma once
 
 #include "model.h"
-#include "input.h"
 #include "grid.h"
 #include "camera.h"
 #include "player.h"

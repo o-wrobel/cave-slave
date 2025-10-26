@@ -1,5 +1,4 @@
-#include "input.h"
-#include <raylib.h>
+#include "model.h"
 
 Input Input::Capture()
 {
@@ -29,3 +28,7 @@ Input Input::Capture()
         }
     };
 }
+
+void Sprite::Draw() const{
+    DrawTexturePro(texture, {0, 0, 8 * (float)direction, 8}, dest_rect, {0, 0}, 0, WHITE);
+};

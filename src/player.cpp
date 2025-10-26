@@ -2,10 +2,6 @@
 
 #include <algorithm>
 
-void Sprite::Draw() const{
-    DrawTexturePro(texture, {0, 0, 8 * (float)direction, 8}, dest_rect, {0, 0}, 0, WHITE);
-};
-
 //PLAYER
 
     void Player::Move(float horizontal, bool space_pressed){
