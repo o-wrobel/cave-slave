@@ -8,6 +8,7 @@ struct Input {
         bool escape;
         bool y;
         bool n;
+        bool f4;
         bool f5;
         bool f6;
     };

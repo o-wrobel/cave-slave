@@ -1,4 +1,5 @@
 #include "input.h"
+#include <raylib.h>
 
 Input Input::Capture()
 {
@@ -22,6 +23,7 @@ Input Input::Capture()
             .escape = IsKeyPressed(KEY_ESCAPE),
             .y = IsKeyPressed(KEY_Y),
             .n = IsKeyPressed(KEY_N),
+            .f4 = IsKeyPressed(KEY_F4),
             .f5 = IsKeyPressed(KEY_F5),
             .f6 = IsKeyPressed(KEY_F6)
         }

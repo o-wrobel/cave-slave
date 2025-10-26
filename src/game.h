@@ -22,25 +22,48 @@ struct Config {
     static constexpr unsigned int GRID_SIZE_Y = 64;
 
     static constexpr unsigned int TILE_SIZE = TILE_RESOLUTION * TILE_COUNT;
+
+    static constexpr float GRAVITY = 800;
 };
 
 
+enum GameMode{
+    EDITOR,
+    PLAY
+};
 
-struct PlayerState {
-    Vector2 position;
+typedef struct Sprite {
+    Texture2D texture;
+    Rectangle dest_rect;
+
+    void Draw() const;
+
+} Sprite;
+
+
+struct Player{
+    Sprite sprite;
     Vector2 size;
-    float move_speed;
+    Vector2 velocity;
+    float speed_factor;
 
-    void MoveBy(Vector2 offset);
+    void Move(float horizontal, bool space_held);
+
+    void FreeMove(float horizontal, float vertical);
+
+    void ApplyVelocity(float delta_time);
+
+    void ApplyGravity(float delta_time);
 
     Vector2 GetCenter() const;
-    static PlayerState New(
-        Vector2 position = {0., 0.},
+
+    static Player New(
+        Texture2D texture,
         Vector2 size = {8.0f, 8.0f},
         float move_speed = 400.0f
     );
 
-    void Update(const Input& input, float delta_time);
+    void Update(GameMode game_type, const Input& input, float delta_time);
 };
 
 struct Assets{
@@ -52,13 +75,15 @@ struct Assets{
 };
 
 struct GameState{
+    GameMode game_type = GameMode::EDITOR;
     float delta_time;
     Input input;
     bool exit_requested = false;
     bool exiting = false;
     Grid grid = Grid::NewDefault(Config::GRID_SIZE_X, Config::GRID_SIZE_Y);
     unsigned int tile_place_type = 1;
-    PlayerState player = PlayerState::New({0, 0});
+    Player player = Player::New({0, 0});
+    Sprite player_sprite;
     CenteredCamera camera;
 
 }; //TODO: Remove unnecessary passing of state instead of its variables
@@ -103,7 +128,7 @@ void RenderTileGhost(
     const unsigned int tile_resolution
 );
 
-void RenderPlayer(const PlayerState& player, const Texture2D& texture);
+void RenderPlayer(const Player& player, const Texture2D& texture);
 
 void Render(const GameState& state, const Assets& assets);
 

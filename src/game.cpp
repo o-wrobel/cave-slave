@@ -8,27 +8,60 @@
 
 namespace Game {
 
+
+void Sprite::Draw() const{
+    DrawTexturePro(texture, {0, 0, 8, 8}, dest_rect, {0, 0}, 0, WHITE);
+};
+
 //PLAYER
-    void PlayerState::MoveBy(Vector2 offset) {
-        Vector2 new_position = {position.x + offset.x, position.y + offset.y};
-        position.x += offset.x;
-        position.y += offset.y;
+//
+    void Player::Move(float horizontal, bool space_pressed){
+        velocity.x = 0;
+        velocity.x += std::clamp(horizontal * speed_factor, -200.f, 200.f);
+        if (space_pressed){
+            velocity.y = -200;
+        }
+
     }
 
-    Vector2 PlayerState::GetCenter() const {
-        return {position.x + size.x / 2, position.y + size.y / 2};
+    void Player::FreeMove(float horizontal, float vertical){
+        velocity.x = 0;
+        velocity.y = 0;
+        velocity.x += std::clamp(horizontal * speed_factor, -400.f, 400.f);
+        velocity.y += -1 * std::clamp(vertical * speed_factor, -400.f, 400.f);
+
     }
 
-    PlayerState PlayerState::New(
-        Vector2 position,
+    void Player::ApplyVelocity(float delta_time){
+        sprite.dest_rect.x += velocity.x * delta_time;
+        sprite.dest_rect.y += velocity.y * delta_time;
+    }
+
+    void Player::ApplyGravity(float delta_time){
+        velocity.y += Config::GRAVITY * delta_time;
+        if (velocity.y > 600){velocity.y = 600;}
+    }
+
+
+    Vector2 Player::GetCenter() const {
+        return {sprite.dest_rect.x + size.x / 2, sprite.dest_rect.y + size.y / 2};
+    }
+
+    Player Player::New(
+        Texture2D texture,
         Vector2 size,
         float move_speed
     )
     {
-        return {position, size, move_speed};
+        Sprite sprite{texture, {0, 0, size.x, size.y}};
+        return {
+            .sprite = sprite,
+            .size = size,
+            .speed_factor = move_speed};
     }
 
-    void PlayerState::Update(
+    void Player::Update(
+        GameMode game_mode,
         const Input& input,
         float delta_time)
     {
@@ -36,12 +69,18 @@ namespace Game {
         float horizontal = (input.held.right ? 1.0f : 0.0f) - (input.held.left ? 1.0f : 0.0f);
         float vertical = (input.held.up ? 1.0f : 0.0f) - (input.held.down ? 1.0f : 0.0f);
 
-        Vector2 offset = {
-            horizontal * move_speed * delta_time,
-            -vertical * move_speed * delta_time
-        };
+        switch (game_mode) {
+            case PLAY:
+            Move(horizontal, input.pressed.space);
+            ApplyGravity(delta_time);
+            break;
 
-        MoveBy(offset);
+            case EDITOR:
+            FreeMove(horizontal, vertical);
+            break;
+        }
+
+        ApplyVelocity(delta_time);
 
     }
 
@@ -176,10 +215,14 @@ namespace Game {
             }
         }
 
+        if(state.input.pressed.f4){
+            state.game_type = (state.game_type == PLAY) ? EDITOR : PLAY;
+        }
+
         UpdateLevel(state.input, state.grid);
         UpdateTilePlacing(state);
 
-        state.player.Update(state.input, state.delta_time);
+        state.player.Update(state.game_type, state.input, state.delta_time);
 
         state.camera.Update(state.player.GetCenter(), state.input, Config::WINDOW_WIDTH, Config::WINDOW_HEIGHT);
 
@@ -237,8 +280,9 @@ namespace Game {
 
     }
 
-    void RenderPlayer(const PlayerState& state, const Texture2D& texture){
-        DrawTextureV(texture, state.position, WHITE);
+    void RenderPlayer(const Player& player, const Texture2D& texture){
+        player.sprite.Draw();
+        // DrawTextureV(texture, player.position, WHITE);
 
     }
 
@@ -262,8 +306,9 @@ namespace Game {
             assets.tile_textures,
             Config::TILE_RESOLUTION
         );
-
-        RenderPlayer(state.player , assets.player_texture);
+        if (state.game_type == PLAY){
+            RenderPlayer(state.player , assets.player_texture);
+        }
 
         EndMode2D();
 
@@ -285,6 +330,7 @@ void Run(){
 
     auto assets = InitAssets();
     GameState state{};
+    state.player = Player::New(assets.player_texture) ;
     if (IsWindowReady()){
         while (true){
             Update(state);
