@@ -1,43 +1,12 @@
 #include "game.h"
-#include "grid.h"
 
 #include <raylib.h>
 #include <iostream>
 #include <string>
 #include <algorithm>
 #include <cmath>
-#include <vector>
 
 namespace Game {
-
-Input Input::Capture()
-{
-    return Input{
-        GetMousePosition(),
-        GetMouseWheelMove(),
-
-        Input::Held{
-            .ctrl = IsKeyDown(KEY_LEFT_CONTROL),
-            .right = IsKeyDown(KEY_D),
-            .left = IsKeyDown(KEY_A),
-            .up = IsKeyDown(KEY_W),
-            .down = IsKeyDown(KEY_S),
-            .space = IsKeyDown(KEY_SPACE),
-            .lmb = IsMouseButtonDown(0),
-            .rmb = IsMouseButtonDown(1)
-        },
-
-        Input::Pressed{
-            .space = IsKeyPressed(KEY_SPACE),
-            .escape = IsKeyPressed(KEY_ESCAPE),
-            .y = IsKeyPressed(KEY_Y),
-            .n = IsKeyPressed(KEY_N),
-            .f5 = IsKeyPressed(KEY_F5),
-            .f6 = IsKeyPressed(KEY_F6)
-        }
-    };
-}
-
 
 //PLAYER
     void PlayerState::MoveBy(Vector2 offset) {
@@ -74,47 +43,6 @@ Input Input::Capture()
 
         MoveBy(offset);
 
-    }
-
-
-//CAMERA
-    Camera2D CenteredCamera::GetCamera2D(unsigned int window_width, unsigned int window_height) const {
-        return {
-            {(float)window_width / 2, (float)window_height / 2},
-            center,
-            rotation,
-            zoom
-        };
-    }
-
-    Rectangle CenteredCamera::GetBounds(unsigned int window_width, unsigned int window_height) const {
-        float half_width = window_width / (2 * zoom);
-        float half_height = window_height / (2 * zoom);
-        return {
-            center.x - half_width,
-            center.y - half_height,
-            half_width * 2,
-            half_height * 2
-        };
-    }
-
-    void CenteredCamera::UpdateZoom(float mouse_wheel_input, bool ctrl_held, unsigned int window_width, unsigned int window_height){
-        if (mouse_wheel_input != 0 && ctrl_held){
-            // Zoom increment
-            // Uses log scaling to provide consistent zoom speed
-            float scale = 0.2f * mouse_wheel_input;
-            zoom = std::clamp(std::expf(std::logf(zoom) + scale), 1 / 8.f, 64.0f);
-
-        }
-    }
-
-    void CenteredCamera::UpdatePosition(Vector2 player_center, float window_width, float window_height){
-        center = player_center;
-    }
-
-    void CenteredCamera::Update(Vector2 player_center, Input input, float window_width, float window_height){
-        UpdatePosition(player_center, window_width, window_height);
-        UpdateZoom(input.mouse_wheel, input.held.ctrl, window_width, window_height);
     }
 
 
@@ -253,7 +181,7 @@ Input Input::Capture()
 
         state.player.Update(state.input, state.delta_time);
 
-        state.camera.Update(state.player.GetCenter(), state.input);
+        state.camera.Update(state.player.GetCenter(), state.input, Config::WINDOW_WIDTH, Config::WINDOW_HEIGHT);
 
     }
 

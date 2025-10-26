@@ -1,6 +1,8 @@
 #pragma once
 
 #include "grid.h"
+#include "input.h"
+#include "camera.h"
 
 #include <raylib.h>
 #include <string>
@@ -22,30 +24,6 @@ struct Config {
     static constexpr unsigned int TILE_SIZE = TILE_RESOLUTION * TILE_COUNT;
 };
 
-struct Input {
-    struct Pressed{
-        bool space;
-        bool escape;
-        bool y;
-        bool n;
-        bool f5;
-        bool f6;
-    };
-
-    struct Held{
-        bool ctrl;
-        bool right, left, up, down, space;
-        bool lmb, rmb;
-    };
-
-    Vector2 mouse_position;
-    float mouse_wheel;
-    Held held;
-    Pressed pressed;
-
-    static Input Capture();
-
-};
 
 
 struct PlayerState {
@@ -63,29 +41,6 @@ struct PlayerState {
     );
 
     void Update(const Input& input, float delta_time);
-};
-
-//CAMERA
-struct CenteredCamera {
-    Vector2 center = {0., 0.};
-    Vector2 offset = {0., 0.};
-    Vector2 target = {0., 0.};
-    float rotation = 0.;
-    float zoom = 2.;
-
-    Camera2D GetCamera2D(unsigned int window_width, unsigned int window_height) const;
-
-    Rectangle GetBounds(unsigned int window_width, unsigned int window_height) const;
-
-    void UpdateZoom(float mouse_wheel_input, bool ctrl_held, unsigned int window_width, unsigned int window_height);
-
-    void UpdatePosition(Vector2 player_center, float window_width, float window_height);
-
-    void Update(Vector2 player_center,
-        Input input,
-        float window_width = Config::WINDOW_WIDTH,
-        float window_height = Config::WINDOW_HEIGHT
-    );
 };
 
 struct Assets{
