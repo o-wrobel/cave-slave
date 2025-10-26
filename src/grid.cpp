@@ -14,7 +14,7 @@ Grid::Grid(size_t width, size_t height) :
 
 }
 
-void Grid::Place(unsigned int x, unsigned int y, unsigned int type){
+void Grid::Place(uint16_t x, uint16_t y, uint16_t type){
     if (0 <= x && x < size_x && 0 <= y && y < size_y){
         tiles.at(y).at(x).type = type;
 
@@ -22,13 +22,13 @@ void Grid::Place(unsigned int x, unsigned int y, unsigned int type){
 
 }
 
-Tile Grid::GetTile(unsigned int x, unsigned int y) const { //TODO: Maybe make this a reference idk
+Tile Grid::GetTile(uint16_t x, uint16_t y) const { //TODO: Maybe make this a reference idk
     return tiles.at(y).at(x);
 
 }
 
 
-Grid Grid::NewDefault(unsigned int width, unsigned int height){
+Grid Grid::NewDefault(uint16_t width, uint16_t height){
     Grid grid(width, height);
     for (int y = 0; y < height; y++)
     {
@@ -60,9 +60,9 @@ void Grid::SaveToFile(std::string filename){
     level_data["width"] = size_x;
     level_data["height"] = size_y;
 
-    std::vector<std::vector<unsigned int>> tiles_data;
+    std::vector<std::vector<uint16_t>> tiles_data;
     for (const auto& row : tiles){
-        std::vector<unsigned int> type_row;
+        std::vector<uint16_t> type_row;
         for (const auto& tile : row){
             type_row.push_back(tile.type);
         }
@@ -90,7 +90,7 @@ std::optional<Grid> Grid::LoadFromFile(std::string filename){
 
     Grid return_grid(level_data["width"], level_data["height"]);
 
-    std::vector<std::vector<unsigned int>> tiles_data = level_data["tiles"];
+    std::vector<std::vector<uint16_t>> tiles_data = level_data["tiles"];
     for (int y = 0; y < return_grid.size_y; y++){
         for (int x = 0; x < return_grid.size_x; x++){
             return_grid.tiles[y][x].type = tiles_data[y][x];

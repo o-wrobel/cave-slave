@@ -3,7 +3,7 @@
 #include <algorithm>
 #include <cmath>
 
-Camera2D CenteredCamera::GetCamera2D(unsigned int window_width, unsigned int window_height) const {
+Camera2D CenteredCamera::GetCamera2D(uint16_t window_width, uint16_t window_height) const {
     return {
         {(float)window_width / 2, (float)window_height / 2},
         center,
@@ -12,7 +12,7 @@ Camera2D CenteredCamera::GetCamera2D(unsigned int window_width, unsigned int win
     };
 }
 
-Rectangle CenteredCamera::GetBounds(unsigned int window_width, unsigned int window_height) const {
+Rectangle CenteredCamera::GetBounds(uint16_t window_width, uint16_t window_height) const {
     float half_width = window_width / (2 * zoom);
     float half_height = window_height / (2 * zoom);
     return {
@@ -23,7 +23,7 @@ Rectangle CenteredCamera::GetBounds(unsigned int window_width, unsigned int wind
     };
 }
 
-void CenteredCamera::UpdateZoom(float mouse_wheel_input, bool ctrl_held, unsigned int window_width, unsigned int window_height){
+void CenteredCamera::UpdateZoom(float mouse_wheel_input, bool ctrl_held, uint16_t window_width, uint16_t window_height){
     if (mouse_wheel_input != 0 && ctrl_held){
         // Zoom increment
         // Uses log scaling to provide consistent zoom speed

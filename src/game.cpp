@@ -1,6 +1,7 @@
 #include "game.h"
 
 #include <raylib.h>
+#include <stdint.h>
 #include <iostream>
 #include <string>
 #include <algorithm>
@@ -12,9 +13,9 @@ namespace Game {
     Vector2 GetMouseGridPosition(
         Vector2 mouse_position,
         const CenteredCamera& camera,
-        unsigned int tile_resolution,
-        unsigned int window_width,
-        unsigned int window_height
+        uint16_t tile_resolution,
+        uint16_t window_width,
+        uint16_t window_height
     ){
         Vector2 world_position = GetScreenToWorld2D(mouse_position, camera.GetCamera2D(window_width, window_height));
         return {
@@ -24,7 +25,7 @@ namespace Game {
 
     }
 
-    std::vector<Texture2D> GetTileTextures(const Image &spritesheet, unsigned int tile_resolution, unsigned int tile_type_count){
+    std::vector<Texture2D> GetTileTextures(const Image &spritesheet, uint16_t tile_resolution, uint16_t tile_type_count){
         std::vector<Texture2D> textures(tile_type_count);
 
         Rectangle source_rect = {0.0f, 0.0f, (float)tile_resolution, (float)tile_resolution};
@@ -48,9 +49,9 @@ namespace Game {
 
     void Init(
         std::string name,
-        unsigned int window_width,
-        unsigned int window_height,
-        unsigned int framerate
+        uint16_t window_width,
+        uint16_t window_height,
+        uint16_t framerate
     ){
         InitWindow(window_width, window_height, name.c_str());
         SetExitKey(KEY_NULL);
@@ -61,7 +62,7 @@ namespace Game {
 
     }
 
-    Assets InitAssets(unsigned int tile_resolution, unsigned int tile_type_count){
+    Assets InitAssets(uint16_t tile_resolution, uint16_t tile_type_count){
         Assets assets;
 
         assets.tile_spritesheet = LoadImage("assets/tiles.png");
@@ -90,11 +91,23 @@ namespace Game {
         }
 
         if (state.input.held.lmb){
-            auto mouse_grid_position = GetMouseGridPosition(state.input.mouse_position, state.camera, Config::TILE_RESOLUTION, Config::WINDOW_WIDTH, Config::WINDOW_HEIGHT);
+            auto mouse_grid_position = GetMouseGridPosition(
+                state.input.mouse_position,
+                state.camera,
+                Config::TILE_RESOLUTION,
+                Config::WINDOW_WIDTH,
+                Config::WINDOW_HEIGHT
+            );
             state.grid.Place(mouse_grid_position.x, mouse_grid_position.y, state.tile_place_type);
         }
         if (state.input.held.rmb){
-            auto mouse_grid_position = GetMouseGridPosition(state.input.mouse_position, state.camera, Config::TILE_RESOLUTION, Config::WINDOW_WIDTH, Config::WINDOW_HEIGHT);
+            auto mouse_grid_position = GetMouseGridPosition(
+                state.input.mouse_position,
+                state.camera,
+                Config::TILE_RESOLUTION,
+                Config::WINDOW_WIDTH,
+                Config::WINDOW_HEIGHT
+            );
             state.grid.Place(mouse_grid_position.x, mouse_grid_position.y, 0);
         }
 
@@ -153,7 +166,7 @@ namespace Game {
 
 
 //RENDER
-    void RenderGrid(const Grid& grid, const std::vector<Texture2D>& tile_textures, Rectangle bounds, unsigned int tile_resolution){
+    void RenderGrid(const Grid& grid, const std::vector<Texture2D>& tile_textures, Rectangle bounds, uint16_t tile_resolution){
         int start_x = bounds.x / tile_resolution;
         int start_y = bounds.y / tile_resolution;
         int end_x = (bounds.x + bounds.width) / tile_resolution + 1;
@@ -166,7 +179,7 @@ namespace Game {
 
         for (int y = start_y; y < end_y; y++)
         {
-            for (unsigned int x = start_x; x < end_x; x++)
+            for (uint16_t x = start_x; x < end_x; x++)
             {
                 const Texture2D& tile_texture = tile_textures.at(grid.GetTile(x, y).type);
 
@@ -176,17 +189,17 @@ namespace Game {
 
     }
 
-    void RenderTilePreview(unsigned int tile_type, Vector2 position, const std::vector<Texture2D>& tile_textures){
+    void RenderTilePreview(uint16_t tile_type, Vector2 position, const std::vector<Texture2D>& tile_textures){
         Texture2D texture = tile_textures.at(tile_type);
         DrawTextureEx(texture, position, 0, 6, {255, 255, 255, 100});
 
     }
 
     void RenderTileGhost(
-        unsigned int tile_type,
+        uint16_t tile_type,
         Vector2 position,
         const std::vector<Texture2D>& tile_textures,
-        unsigned int tile_resolution
+        uint16_t tile_resolution
     )
     {
         Texture2D texture = tile_textures.at(tile_type);
