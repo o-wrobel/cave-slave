@@ -14,10 +14,9 @@ namespace Game {
         Vector2 mouse_position,
         const CenteredCamera& camera,
         uint16_t tile_resolution,
-        uint16_t window_width,
-        uint16_t window_height
+        Vector2u window_size
     ){
-        Vector2 world_position = GetScreenToWorld2D(mouse_position, camera.GetCamera2D(window_width, window_height));
+        Vector2 world_position = GetScreenToWorld2D(mouse_position, camera.GetCamera2D(window_size));
         return {
             std::floor(world_position.x / tile_resolution),
             std::floor(world_position.y / tile_resolution),
@@ -49,11 +48,10 @@ namespace Game {
 
     void Init(
         std::string name,
-        uint16_t window_width,
-        uint16_t window_height,
+        Vector2u window_size,
         uint16_t framerate
     ){
-        InitWindow(window_width, window_height, name.c_str());
+        InitWindow(window_size.x, window_size.y, name.c_str());
         SetExitKey(KEY_NULL);
         IsWindowResized();
         if (framerate != 0){
@@ -95,8 +93,7 @@ namespace Game {
                 state.input.mouse_position,
                 state.camera,
                 Config::TILE_RESOLUTION,
-                Config::WINDOW_WIDTH,
-                Config::WINDOW_HEIGHT
+                Config::WINDOW_SIZE
             );
             state.grid.Place(mouse_grid_position.x, mouse_grid_position.y, state.tile_place_type);
         }
@@ -105,8 +102,7 @@ namespace Game {
                 state.input.mouse_position,
                 state.camera,
                 Config::TILE_RESOLUTION,
-                Config::WINDOW_WIDTH,
-                Config::WINDOW_HEIGHT
+                Config::WINDOW_SIZE
             );
             state.grid.Place(mouse_grid_position.x, mouse_grid_position.y, 0);
         }
@@ -160,7 +156,7 @@ namespace Game {
 
         state.player.Update(state.game_mode, state.input, Config::GRAVITY, state.delta_time);
 
-        state.camera.Update(state.player.GetCenter(), state.input, Config::WINDOW_WIDTH, Config::WINDOW_HEIGHT);
+        state.camera.Update(state.player.GetCenter(), state.input, Config::WINDOW_SIZE);
 
     }
 
@@ -233,12 +229,12 @@ namespace Game {
         ClearBackground(BLACK);
 
         //START DRAWING
-        BeginMode2D(state.camera.GetCamera2D(Config::WINDOW_WIDTH, Config::WINDOW_HEIGHT));
+        BeginMode2D(state.camera.GetCamera2D(Config::WINDOW_SIZE));
 
-        RenderGrid(state.grid,  assets.tile_textures, state.camera.GetBounds(Config::WINDOW_WIDTH, Config::WINDOW_HEIGHT), Config::TILE_RESOLUTION);
+        RenderGrid(state.grid,  assets.tile_textures, state.camera.GetBounds(Config::WINDOW_SIZE), Config::TILE_RESOLUTION);
         RenderTileGhost(
             state.tile_place_type,
-            GetMouseGridPosition(state.input.mouse_position, state.camera),
+            GetMouseGridPosition(state.input.mouse_position, state.camera, Config::TILE_RESOLUTION, Config::WINDOW_SIZE),
             assets.tile_textures,
             Config::TILE_RESOLUTION
         );
@@ -262,7 +258,7 @@ namespace Game {
     }
 
 void Run(){
-    Init("CaveSlave"); //Has to be first to be called
+    Init("CaveSlave", Config::WINDOW_SIZE, Config::TARGET_FRAMERATE); //Has to be first to be called
 
     auto assets = InitAssets();
     GameState state{};

@@ -1,20 +1,21 @@
 #include "camera.h"
+#include "model.h"
 
 #include <algorithm>
 #include <cmath>
 
-Camera2D CenteredCamera::GetCamera2D(uint16_t window_width, uint16_t window_height) const {
+Camera2D CenteredCamera::GetCamera2D(Vector2u window_size) const {
     return {
-        {(float)window_width / 2, (float)window_height / 2},
+        {(float)window_size.x / 2, (float)window_size.y / 2},
         center,
         rotation,
         zoom
     };
 }
 
-Rectangle CenteredCamera::GetBounds(uint16_t window_width, uint16_t window_height) const {
-    float half_width = window_width / (2 * zoom);
-    float half_height = window_height / (2 * zoom);
+Rectangle CenteredCamera::GetBounds(Vector2u window_size) const {
+    float half_width = window_size.x / (2 * zoom);
+    float half_height = window_size.y / (2 * zoom);
     return {
         center.x - half_width,
         center.y - half_height,
@@ -23,7 +24,7 @@ Rectangle CenteredCamera::GetBounds(uint16_t window_width, uint16_t window_heigh
     };
 }
 
-void CenteredCamera::UpdateZoom(float mouse_wheel_input, bool ctrl_held, uint16_t window_width, uint16_t window_height){
+void CenteredCamera::UpdateZoom(float mouse_wheel_input, bool ctrl_held, Vector2u window_size){
     if (mouse_wheel_input != 0 && ctrl_held){
         // Zoom increment
         // Uses log scaling to provide consistent zoom speed
@@ -33,11 +34,11 @@ void CenteredCamera::UpdateZoom(float mouse_wheel_input, bool ctrl_held, uint16_
     }
 }
 
-void CenteredCamera::UpdatePosition(Vector2 player_center, float window_width, float window_height){
+void CenteredCamera::UpdatePosition(Vector2 player_center, Vector2u window_size){
     center = player_center;
 }
 
-void CenteredCamera::Update(Vector2 player_center, Input input, float window_width, float window_height){
-    UpdatePosition(player_center, window_width, window_height);
-    UpdateZoom(input.mouse_wheel, input.held.ctrl, window_width, window_height);
+void CenteredCamera::Update(Vector2 player_center, Input input, Vector2u window_size){
+    UpdatePosition(player_center, window_size);
+    UpdateZoom(input.mouse_wheel, input.held.ctrl, window_size);
 }

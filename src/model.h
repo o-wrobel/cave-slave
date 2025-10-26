@@ -1,7 +1,13 @@
 #pragma once
 
 #include <raylib.h>
+#include <stdint.h>
 #include <vector>
+
+typedef struct Vector2u {
+    uint32_t x;
+    uint32_t y;
+} Vector2u;
 
 enum GameMode{
     EDITOR,
