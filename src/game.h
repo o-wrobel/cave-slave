@@ -25,7 +25,10 @@ struct Config {
 
     static constexpr float GRAVITY = 800;
 };
-
+typedef enum Direction{
+    RIGHT = 1,
+    LEFT = -1
+} Direction;
 
 enum GameMode{
     EDITOR,
@@ -35,6 +38,7 @@ enum GameMode{
 typedef struct Sprite {
     Texture2D texture;
     Rectangle dest_rect;
+    Direction direction = RIGHT;
 
     void Draw() const;
 
@@ -75,7 +79,7 @@ struct Assets{
 };
 
 struct GameState{
-    GameMode game_type = GameMode::EDITOR;
+    GameMode game_mode = GameMode::EDITOR;
     float delta_time;
     Input input;
     bool exit_requested = false;

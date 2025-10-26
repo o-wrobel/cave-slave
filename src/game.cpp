@@ -10,11 +10,11 @@ namespace Game {
 
 
 void Sprite::Draw() const{
-    DrawTexturePro(texture, {0, 0, 8, 8}, dest_rect, {0, 0}, 0, WHITE);
+    DrawTexturePro(texture, {0, 0, 8 * (float)direction, 8}, dest_rect, {0, 0}, 0, WHITE);
 };
 
 //PLAYER
-//
+
     void Player::Move(float horizontal, bool space_pressed){
         velocity.x = 0;
         velocity.x += std::clamp(horizontal * speed_factor, -200.f, 200.f);
@@ -71,6 +71,14 @@ void Sprite::Draw() const{
 
         switch (game_mode) {
             case PLAY:
+
+            if (horizontal < 0){
+                sprite.direction = LEFT;
+            }
+            if (horizontal > 0){
+                sprite.direction = RIGHT;
+            }
+
             Move(horizontal, input.pressed.space);
             ApplyGravity(delta_time);
             break;
@@ -152,7 +160,7 @@ void Sprite::Draw() const{
 
 //UPDATE
     void UpdateTilePlacing(GameState& state){
-        if (state.input.pressed.space){
+        if (state.input.pressed.space && state.game_mode == EDITOR){
             state.tile_place_type++;
         }
 
@@ -216,13 +224,13 @@ void Sprite::Draw() const{
         }
 
         if(state.input.pressed.f4){
-            state.game_type = (state.game_type == PLAY) ? EDITOR : PLAY;
+            state.game_mode = (state.game_mode == PLAY) ? EDITOR : PLAY;
         }
 
         UpdateLevel(state.input, state.grid);
         UpdateTilePlacing(state);
 
-        state.player.Update(state.game_type, state.input, state.delta_time);
+        state.player.Update(state.game_mode, state.input, state.delta_time);
 
         state.camera.Update(state.player.GetCenter(), state.input, Config::WINDOW_WIDTH, Config::WINDOW_HEIGHT);
 
@@ -306,7 +314,7 @@ void Sprite::Draw() const{
             assets.tile_textures,
             Config::TILE_RESOLUTION
         );
-        if (state.game_type == PLAY){
+        if (state.game_mode == PLAY){
             RenderPlayer(state.player , assets.player_texture);
         }
 
