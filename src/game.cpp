@@ -1,4 +1,5 @@
 #include "game.h"
+#include "model.h"
 
 #include <raylib.h>
 #include <stdint.h>
@@ -149,10 +150,12 @@ namespace Game {
 
         if(state.input.pressed.f4){
             state.game_mode = (state.game_mode == PLAY) ? EDITOR : PLAY;
+            
         }
-
-        UpdateLevel(state.input, state.grid);
-        UpdateTilePlacing(state);
+        if(state.game_mode == EDITOR){
+            UpdateLevel(state.input, state.grid);
+            UpdateTilePlacing(state);
+        }
 
         state.player.Update(state.game_mode, state.input, state.grid, Config::GRAVITY, state.delta_time);
 
@@ -232,20 +235,27 @@ namespace Game {
         BeginMode2D(state.camera.GetCamera2D(Config::WINDOW_SIZE));
 
         RenderGrid(state.grid,  assets.tile_textures, state.camera.GetBounds(Config::WINDOW_SIZE), Config::TILE_RESOLUTION);
-        RenderTileGhost(
-            state.tile_place_type,
-            GetMouseGridPosition(state.input.mouse_position, state.camera, Config::TILE_RESOLUTION, Config::WINDOW_SIZE),
-            assets.tile_textures,
-            Config::TILE_RESOLUTION
-        );
-        if (state.game_mode == PLAY){
+        switch (state.game_mode){
+            case PLAY:
             RenderPlayer(state.player , assets.player_texture);
+            break;
+
+            case EDITOR:
+            RenderTileGhost(
+                state.tile_place_type,
+                GetMouseGridPosition(state.input.mouse_position, state.camera, Config::TILE_RESOLUTION, Config::WINDOW_SIZE),
+                assets.tile_textures,
+                Config::TILE_RESOLUTION
+            );
+            break;
         }
 
         EndMode2D();
 
         //Draw UI
-        RenderTilePreview(state.tile_place_type, {Config::WINDOW_WIDTH - 80, 30}, assets.tile_textures);
+        if (state.game_mode == EDITOR){
+            RenderTilePreview(state.tile_place_type, {Config::WINDOW_WIDTH - 80, 30}, assets.tile_textures);
+        }
         DrawText("CaveSlave", 32, 32, 32, WHITE);
         DrawFPS(60, 60);
 
