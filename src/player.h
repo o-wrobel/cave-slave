@@ -8,10 +8,11 @@
 
 struct Player{
     Sprite sprite;
-    Vector2 velocity;
     float max_horizontal_speed;
+    Vector2 velocity = {0.0f, 0.0f};
+    bool is_grounded = false;
 
-    void SetVelocity(float horizontal_input, bool space_held);
+    void SetVelocity(float horizontal_input, bool jump_key_held);
 
     void ResolveCollision(Rectangle tile_rect);
 

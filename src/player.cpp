@@ -31,16 +31,14 @@ void Player::ResolveCollision(Rectangle tile_rect){
                sprite.dest_rect.x += overlap.width;
            }
            velocity.x = 0;
-       } else {
-           // Vertical collision - push up or down
-           if (sprite.dest_rect.y < tile_rect.y) {
-               // Player is above, push up (hit ceiling)
-               sprite.dest_rect.y -= overlap.height;
-               if (velocity.y > 0) velocity.y = 0;
-           } else {
-               // Player is below, push down (hit ground)
-               sprite.dest_rect.y += overlap.height;
-               if (velocity.y < 0) velocity.y = 0;
+       } else { //Vertical collision
+            if (sprite.dest_rect.y < tile_rect.y) { //Hits ground
+                is_grounded = true;
+                sprite.dest_rect.y -= overlap.height;
+                if (velocity.y > 0) velocity.y = 0;
+            } else { //Hits ceiling
+                sprite.dest_rect.y += overlap.height;
+                if (velocity.y < 0) velocity.y = 0;
            }
        }
 }
@@ -81,13 +79,13 @@ void Player::CheckCollision(const Grid& grid, uint16_t tile_resolution){ // Chec
     }
 }
 
-void Player::SetVelocity(float horizontal_input, bool space_pressed){
+void Player::SetVelocity(float horizontal_input, bool jump_key_held){
     if (horizontal_input == 0) {
         velocity.x *= 0.1;
     } else {
         velocity.x = horizontal_input * max_horizontal_speed;
     }
-    if (space_pressed){
+    if (jump_key_held && is_grounded){
         velocity.y = -1 * JUMP_POWER;
     }
 
@@ -135,8 +133,9 @@ void Player::Update(
                 sprite.direction = RIGHT;
             }
 
-            SetVelocity(horizontal, input.pressed.space);
+            SetVelocity(horizontal, input.held.space);
             ApplyGravity(gravity, delta_time);
+            is_grounded = false;
 
             // CRITICAL: Apply axis separation - move X first, check collision
             CheckCollision(grid, 8);
