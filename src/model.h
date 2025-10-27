@@ -7,7 +7,12 @@
 typedef struct Vector2u {
     uint32_t x;
     uint32_t y;
+
+    Vector2 ToVector2() const;
 } Vector2u;
+
+Vector2u Vector2uAdd(Vector2u a, Vector2u b);
+Vector2u Vector2uScale(Vector2u a, float scale);
 
 struct Input {
     struct Pressed{

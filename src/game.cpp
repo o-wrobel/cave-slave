@@ -154,9 +154,9 @@ namespace Game {
         UpdateLevel(state.input, state.grid);
         UpdateTilePlacing(state);
 
-        state.player.Update(state.game_mode, state.input, Config::GRAVITY, state.delta_time);
+        state.player.Update(state.game_mode, state.input, state.grid, Config::GRAVITY, state.delta_time);
 
-        state.camera.Update(state.player.GetCenter(), state.input, Config::WINDOW_SIZE);
+        state.camera.Update(state.player.GetCenterPosition(), state.input, Config::WINDOW_SIZE);
 
     }
 

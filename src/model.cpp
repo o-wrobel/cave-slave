@@ -1,5 +1,13 @@
 #include "model.h"
 
+Vector2 Vector2u::ToVector2() const {
+    return Vector2{static_cast<float>(x), static_cast<float>(y)};
+}
+
+Vector2u Vector2uAdd(Vector2u a, Vector2u b) {
+    return Vector2u{a.x + b.x, a.y + b.y};
+}
+
 Input Input::Capture()
 {
     return Input{
