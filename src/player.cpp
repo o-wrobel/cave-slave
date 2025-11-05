@@ -18,7 +18,20 @@ Player Player::New(
     Sprite sprite{texture, {0, 0, size.x, size.y}};
     return {
         .sprite = sprite,
-        .max_horizontal_speed = max_horizontal_speed};
+        .max_horizontal_speed = max_horizontal_speed
+    };
+}
+
+Vector2 Player::GetCenterPosition() const {
+    return {sprite.dest_rect.x + sprite.dest_rect.width / 2, sprite.dest_rect.y + sprite.dest_rect.height / 2};
+}
+
+Vector2u Player::GetGridPosition(uint16_t tile_resolution) const {
+	return {
+        static_cast<uint16_t>(GetCenterPosition().x / tile_resolution),
+        static_cast<uint16_t>(GetCenterPosition().y / tile_resolution)
+    };
+
 }
 
 void Player::ResolveCollision(Rectangle tile_rect){
@@ -50,6 +63,7 @@ void Player::CheckCollision(const Grid& grid, uint16_t tile_resolution){ // Chec
     };
     for (int dy = -1; dy <= 1; dy++) {
         for (int dx = -1; dx <= 1; dx++) {
+        	//Check for every tile around the player
             Vector2 tile_position = Vector2Add(
                 player_grid_position.ToVector2(),
                 {static_cast<float>(dx), static_cast<float>(dy)}
@@ -107,10 +121,6 @@ void Player::ApplyVelocity(float delta_time){
 void Player::ApplyGravity(float gravity, float delta_time){
     velocity.y += gravity * delta_time;
     if (velocity.y > 600){velocity.y = 600;}
-}
-
-Vector2 Player::GetCenterPosition() const {
-    return {sprite.dest_rect.x + sprite.dest_rect.width / 2, sprite.dest_rect.y + sprite.dest_rect.height / 2};
 }
 
 void Player::Update(

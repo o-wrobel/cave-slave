@@ -1,6 +1,7 @@
 #include "game.h"
 #include "model.h"
 
+#include <cstdint>
 #include <raylib.h>
 #include <stdint.h>
 #include <iostream>
@@ -11,7 +12,7 @@
 namespace Game {
 
 //FUNCTIONS
-    Vector2 GetMouseGridPosition(
+    Vector2u GetMouseGridPosition(
         Vector2 mouse_position,
         const CenteredCamera& camera,
         uint16_t tile_resolution,
@@ -19,11 +20,18 @@ namespace Game {
     ){
         Vector2 world_position = GetScreenToWorld2D(mouse_position, camera.GetCamera2D(window_size));
         return {
-            std::floor(world_position.x / tile_resolution),
-            std::floor(world_position.y / tile_resolution),
+            (uint16_t)std::floor(world_position.x / tile_resolution),
+            (uint16_t)std::floor(world_position.y / tile_resolution),
         };
 
     }
+
+    Vector2u GetClampedMouseGridPosition(Vector2u mouse_grid_position, Vector2u player_grid_position){
+	    return {
+	    	std::clamp(mouse_grid_position.x, player_grid_position.x - 1, player_grid_position.x + 1),
+	    	std::clamp(mouse_grid_position.y, player_grid_position.x - 1, player_grid_position.x + 1)
+	    };
+    } //TODO: ASSERTION FAILURE. FIND IT
 
     std::vector<Texture2D> GetTileTextures(const Image &spritesheet, uint16_t tile_resolution, uint16_t tile_type_count){
         std::vector<Texture2D> textures(tile_type_count);
@@ -110,6 +118,22 @@ namespace Game {
 
     }
 
+    void UpdateTileBreakingPlay(GameState& state){
+        if (state.input.held.rmb){
+            Vector2u mouse_grid_position = GetMouseGridPosition(
+                state.input.mouse_position,
+                state.camera,
+                Config::TILE_RESOLUTION,
+                Config::WINDOW_SIZE
+            );
+            //TODO: FIX THIS. LO > HI in CLAMP
+            // Vector2u player_pos = state.player.GetGridPosition(Config::TILE_RESOLUTION);
+            // Vector2u clamped_position = GetClampedMouseGridPosition(mouse_grid_position, state.player.GetGridPosition(Config::TILE_RESOLUTION));
+            // state.grid.Place(clamped_position.x, clamped_position.y, 0);
+        }
+
+    }
+
     void UpdateLevel(const Input& input, Grid& grid){
         if (input.pressed.f5){
             std::cout << std::endl <<"LOADING LEVEL: Enter a level name: ";
@@ -150,12 +174,16 @@ namespace Game {
 
         if(state.input.pressed.f4){
             state.game_mode = (state.game_mode == PLAY) ? EDITOR : PLAY;
-            
+
         }
         if(state.game_mode == EDITOR){
             UpdateLevel(state.input, state.grid);
             UpdateTilePlacing(state);
         }
+        if (state.game_mode == PLAY){
+	        UpdateLevel(state.input, state.grid);
+	       	UpdateTileBreakingPlay(state);
+		};
 
         state.player.Update(state.game_mode, state.input, state.grid, Config::GRAVITY, state.delta_time);
 
@@ -196,7 +224,7 @@ namespace Game {
 
     void RenderTileGhost(
         uint16_t tile_type,
-        Vector2 position,
+        Vector2u position,
         const std::vector<Texture2D>& tile_textures,
         uint16_t tile_resolution
     )
@@ -204,8 +232,8 @@ namespace Game {
         Texture2D texture = tile_textures.at(tile_type);
 
         Rectangle rectangle{
-            position.x * tile_resolution,
-            position.y * tile_resolution,
+            (float)position.x * tile_resolution,
+            (float)position.y * tile_resolution,
             static_cast<float>(tile_resolution),
             static_cast<float>(tile_resolution)
         };
@@ -234,13 +262,23 @@ namespace Game {
         //START DRAWING
         BeginMode2D(state.camera.GetCamera2D(Config::WINDOW_SIZE));
 
-        RenderGrid(state.grid,  assets.tile_textures, state.camera.GetBounds(Config::WINDOW_SIZE), Config::TILE_RESOLUTION);
+        auto mouse_grid_position = GetMouseGridPosition(state.input.mouse_position, state.camera, Config::TILE_RESOLUTION, Config::WINDOW_SIZE);
+        //TODO: FIX
+        // Vector2u clamped_position = GetClampedMouseGridPosition(mouse_grid_position, state.player.GetGridPosition(Config::TILE_RESOLUTION));
         switch (state.game_mode){
             case PLAY:
             RenderPlayer(state.player , assets.player_texture);
+            RenderGrid(state.grid,  assets.tile_textures, state.camera.GetBounds(Config::WINDOW_SIZE), Config::TILE_RESOLUTION);
+            RenderTileGhost(
+                state.tile_place_type,
+                mouse_grid_position,
+                assets.tile_textures,
+                Config::TILE_RESOLUTION
+            );
             break;
 
             case EDITOR:
+            RenderGrid(state.grid,  assets.tile_textures, state.camera.GetBounds(Config::WINDOW_SIZE), Config::TILE_RESOLUTION);
             RenderTileGhost(
                 state.tile_place_type,
                 GetMouseGridPosition(state.input.mouse_position, state.camera, Config::TILE_RESOLUTION, Config::WINDOW_SIZE),

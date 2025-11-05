@@ -2,6 +2,7 @@
 
 #include "model.h"
 #include "grid.h"
+#include <cstdint>
 #include <stdint.h>
 #include <raylib.h>
 #include <raymath.h>
@@ -25,6 +26,8 @@ struct Player{
     void ApplyGravity(float gravity, float delta_time);
 
     Vector2 GetCenterPosition() const;
+
+    Vector2u GetGridPosition(uint16_t tile_resolution) const;
 
     static Player New(
         Texture2D texture,

@@ -45,7 +45,7 @@ struct GameState{
 };
 
 //FUNCTIONS
-Vector2 GetMouseGridPosition(
+Vector2u GetMouseGridPosition(
     Vector2 mouse_position,
     const CenteredCamera& camera,
     uint16_t resolution,
